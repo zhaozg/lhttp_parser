@@ -117,6 +117,29 @@ static int lhttp_parser_on_url(http_parser *p, const char *at, size_t length) {
   return 0;
 }
 
+static int lhttp_parser_on_status(http_parser *p, const char *at, size_t length) {
+  lua_State *L = p->data;
+
+  /* Put the environment of the userdata on the top of the stack */
+  lua_getuservalue(L, 1);
+  /* Get the onUrl callback and put it on the stack */
+  lua_getfield(L, -1, "onStatus");
+  /* See if it's a function */
+  if (lua_isfunction (L, -1) == 0) {
+    /* no function defined */
+    lua_pop(L, 2);
+    return 0;
+  };
+  /* Push the status code and string argument */
+  lua_pushinteger(L, p->status_code);
+  lua_pushlstring(L, at, length);
+
+  lua_call(L, 2, 1);
+
+  lua_pop(L, 2); /* pop returned value and the userdata env */
+  return 0;
+}
+
 static int lhttp_parser_on_header_field(http_parser *p, const char *at, size_t length) {
   lua_State *L = p->data;
 
@@ -232,6 +255,45 @@ static int lhttp_parser_on_headers_complete(http_parser *p) {
   return 0;
 }
 
+static int lhttp_parser_on_chunk_header(http_parser *p) {
+  lua_State *L = p->data;
+
+  /* Put the environment of the userdata on the top of the stack */
+  lua_getuservalue(L, 1);
+  /* Get the onMessageComplete callback and put it on the stack */
+  lua_getfield(L, -1, "onChunkHeader");
+  /* See if it's a function */
+  if (lua_isfunction (L, -1) == 0) {
+    /* no function defined */
+    lua_pop(L, 2);
+    return 0;
+  };
+  lua_pushinteger(L, p->content_length);
+  lua_call(L, 1, 1);
+
+  lua_pop(L, 2); /* pop returned value and the userdata env */
+  return 0;
+}
+
+static int lhttp_parser_on_chunk_complete(http_parser *p) {
+  lua_State *L = p->data;
+
+  /* Put the environment of the userdata on the top of the stack */
+  lua_getuservalue(L, 1);
+  /* Get the onMessageComplete callback and put it on the stack */
+  lua_getfield(L, -1, "onChunkComplete");
+  /* See if it's a function */
+  if (lua_isfunction (L, -1) == 0) {
+    /* no function defined */
+    lua_pop(L, 2);
+    return 0;
+  };
+  lua_call(L, 0, 1);
+
+  lua_pop(L, 2); /* pop returned value and the userdata env */
+  return 0;
+}
+
 /******************************************************************************/
 
 /* Takes as arguments a string for type and a table for event callbacks */
@@ -278,8 +340,8 @@ static int lhttp_parser_execute (lua_State *L) {
   luaL_checktype(L, 2, LUA_TSTRING);
   chunk = lua_tolstring(L, 2, &chunk_len);
 
-  offset = luaL_checkint(L, 3);
-  length = luaL_checkint(L, 4);
+  offset = luaL_optint(L, 3, 0);
+  length = luaL_optint(L, 4, chunk_len);
 
   luaL_argcheck(L, offset < chunk_len, 3, "Offset is out of bounds");
   luaL_argcheck(L, offset + length <= chunk_len, 4,  "Length extends beyond end of chunk");
@@ -313,6 +375,13 @@ static int lhttp_parser_reinitialize (lua_State *L) {
     http_parser_init(parser, HTTP_RESPONSE);
   } else {
     return luaL_argerror(L, 1, "type must be 'request' or 'response'");
+  }
+  if(!lua_isnoneornil(L, 3))
+  {
+    luaL_checktype(L, 3, LUA_TTABLE);
+    /* Set the callback table as the userdata's environment */
+    lua_pushvalue(L, 3);
+    lua_setuservalue(L, 1);
   }
 
   return 0;
@@ -359,11 +428,64 @@ static int lhttp_parser_parse_url (lua_State *L) {
 }
 
 /******************************************************************************/
+static int lhttp_parser_http_version(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushinteger(L, parser->http_major);
+    lua_pushinteger(L, parser->http_minor);
+    return 2;
+}
 
+static int lhttp_parser_status_code(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushinteger(L, parser->status_code);
+    return 1;
+}
+
+static int lhttp_parser_method(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushstring(L, method_to_str(parser->method));
+    return 1;
+}
+
+static int lhttp_parser_http_errno(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    enum http_errno http_errno = parser->http_errno;
+    lua_pushinteger(L, http_errno);
+    lua_pushstring(L, http_errno_name(http_errno));
+    lua_pushstring(L, http_errno_description(http_errno));
+    return 3;
+}
+
+static int lhttp_parser_upgrade(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushboolean(L, parser->upgrade);
+    return 1;
+}
+
+static int lhttp_parser_should_keep_alive(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushboolean(L, http_should_keep_alive(parser));
+    return 1;
+}
+
+static int lhttp_parser_tostring(lua_State* L) {
+    http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+    lua_pushfstring(L, "lhttp_parser %p", parser);
+    return 1;
+}
+
+/******************************************************************************/
 static const luaL_Reg lhttp_parser_m[] = {
+  {"http_version", lhttp_parser_http_version},
+  {"status_code", lhttp_parser_status_code},
+  {"method", lhttp_parser_method},
+  {"http_errno", lhttp_parser_http_errno},
+  {"upgrade", lhttp_parser_upgrade},
+  {"should_keep_alive", lhttp_parser_should_keep_alive},
   {"execute", lhttp_parser_execute},
   {"finish", lhttp_parser_finish},
   {"reinitialize", lhttp_parser_reinitialize},
+  {"__tostring", lhttp_parser_tostring},
   {NULL, NULL}
 };
 
@@ -378,11 +500,14 @@ LUALIB_API int luaopen_lhttp_parser (lua_State *L) {
   /* This needs to be done sometime? */
   lhttp_parser_settings.on_message_begin    = lhttp_parser_on_message_begin;
   lhttp_parser_settings.on_url              = lhttp_parser_on_url;
+  lhttp_parser_settings.on_status           = lhttp_parser_on_status;
   lhttp_parser_settings.on_header_field     = lhttp_parser_on_header_field;
   lhttp_parser_settings.on_header_value     = lhttp_parser_on_header_value;
   lhttp_parser_settings.on_headers_complete = lhttp_parser_on_headers_complete;
   lhttp_parser_settings.on_body             = lhttp_parser_on_body;
   lhttp_parser_settings.on_message_complete = lhttp_parser_on_message_complete;
+  lhttp_parser_settings.on_chunk_header     = lhttp_parser_on_chunk_header;
+  lhttp_parser_settings.on_chunk_complete   = lhttp_parser_on_chunk_complete;
 
   /* Create a metatable for the lhttp_parser userdata type */
   luaL_newmetatable(L, "lhttp_parser");
