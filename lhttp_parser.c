@@ -20,6 +20,26 @@
 #include "lhttp_parser.h"
 #include "http_parser.h"
 
+#if LUA_VERSION_NUM < 502
+/* lua_rawlen: Not entirely correct, but should work anyway */
+# ifndef lua_rawlen
+#	define lua_rawlen lua_objlen
+# endif
+/* lua_...uservalue: Something very different, but it should get the job done */
+# ifndef lua_getuservalue
+#	define lua_getuservalue lua_getfenv
+# endif
+# ifndef lua_setuservalue
+#	define lua_setuservalue lua_setfenv
+# endif
+# ifndef luaL_newlib
+#	define luaL_newlib(L,l) (lua_newtable(L), luaL_register(L,NULL,l))
+# endif
+# ifndef luaL_setfuncs
+#	define luaL_setfuncs(L,l,n) (assert(n==0), luaL_register(L,NULL,l))
+# endif
+#endif
+
 static const char* method_to_str(unsigned short m) {
   switch (m) {
     case HTTP_DELETE:     return "DELETE";
