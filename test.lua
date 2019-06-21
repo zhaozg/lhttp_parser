@@ -45,7 +45,7 @@ User-Agent: httperf/0.9.0
 Connection: keep-alive
 
 ]]
-pipeline = pipeline:gsub('\r',''):gsub('\n', '\r\n')
+pipeline = pipeline:gsub('\n', '\r\n')
 
 function pipeline_test()
     local cbs = {}
@@ -200,7 +200,7 @@ Content-Length: 10
 Connection: close
 
 0123456789]]
-please_continue = please_continue:gsub('\r',''):gsub('\n', '\r\n')
+pipeline = pipeline:gsub('\r',''):gsub('\n', '\r\n')
 
 function please_continue_test()
     local cbs = {}
@@ -233,7 +233,7 @@ Date: Wed, 02 Feb 2011 00:50:50 GMT
 Connection: close
 
 0123456789]]
-connection_close = connection_close:gsub('\r',''):gsub('\n', '\r\n')
+connection_close = connection_close:gsub('\n', '\r\n')
 
 function connection_close_test()
     local cbs = {}
@@ -354,9 +354,12 @@ function basic_tests()
 
     -- NOTE: All requests must be version HTTP/1.1 since we re-use the same HTTP parser for all requests.
     requests.ab = {
-        "GET /foo/t.html?qstring#frag HTTP/1.1\r\n",
-        "Host: localhost:8000\r\nUser-Agent: ApacheBench/2.3\r\n",
-        "Content-Length: 5\r\n",
+        "GET /", "foo/t", ".html?", "qst", "ring", "#fr", "ag ", "HTTP/1.1\r\n",
+        "Ho",
+        "st: loca",
+        "lhos",
+        "t:8000\r\nUser-Agent: ApacheBench/2.3\r\n",
+        "Con", "tent-L", "ength", ": 5\r\n",
         "Accept: */*\r\n\r",
         "\nbody\n",
     }
@@ -400,7 +403,10 @@ function basic_tests()
     requests.firefox = {
 	"GET / HTTP/1.1\r\n",
 	"Host: two.local:8000\r\n",
-	"User-Agent: Mozilla/5.0 (X11; U;Linux i686; en-US; rv:1.9.0.15)Gecko/2009102815 Ubuntu/9.04 (jaunty)Firefox/3.0.15\r\n",
+	"User-Agent: Mozilla/5.0 (X11; U;",
+	"Linux i686; en-US; rv:1.9.0.15)",
+	"Gecko/2009102815 Ubuntu/9.04 (jaunty)",
+	"Firefox/3.0.15\r\n",
 	"Accept: text/html,application/xhtml+xml,application/xml;",
 	"q=0.9,*/*;q=0.8\r\n",
 	"Accept-Language:en-gb,en;q=0.5\r\n",
@@ -442,10 +448,7 @@ function init_parser()
    end
 
    function cb.onUrl(value)
-       ok(cur.url == nil, "expected [url]=nil, but got ["..tostring(cur.url)..
-           "] when setting field [" .. tostring(value) .. "]")
-       cur.url = value;
-       cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(value)
+       cur.url = cur.url and (cur.url .. value) or value;
    end
 
    function cb.onBody(value)
@@ -456,12 +459,27 @@ function init_parser()
    end
 
    function cb.onHeaderField(field)
-      cur.headers[#cur.headers+1] = field
+       if not cur.path then
+       cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(cur.url)
+       end
+       cur.field = cur.field and (cur.field..field) or field
    end
 
    function cb.onHeaderValue(value)
-      local field = cur.headers[#cur.headers]
-      cur.headers[field] = value
+      local field
+      if cur.field then
+         cur.headers[#cur.headers+1] = cur.field
+         field = cur.field
+         cur.field = nil
+      else
+         field = cur.headers[#cur.headers]
+      end
+      local t = cur.headers[field]
+      if t then
+         cur.headers[field] = t .. value
+      else
+         cur.headers[field] = value
+      end
    end
 
    function cb.onMessageComplete()
