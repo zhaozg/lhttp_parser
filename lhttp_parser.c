@@ -376,12 +376,8 @@ static int lhttp_parser_finish (lua_State *L) {
   http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
 
   int rv = http_parser_execute(parser, &lhttp_parser_settings, NULL, 0);
-
-  if (rv != 0) {
-    return luaL_error(L, http_errno_description(HTTP_PARSER_ERRNO(parser)));
-  }
-
-  return 0;
+  lua_pushnumber(L, rv);
+  return 1;
 }
 
 static int lhttp_parser_reinitialize (lua_State *L) {
