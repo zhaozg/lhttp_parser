@@ -419,7 +419,7 @@ static int lhttp_parser_finish (lua_State *L) {
 #endif
 
 #ifdef USE_LLHTTP
-  err = llhttp_execute(parser, NULL, 0);
+  err = llhttp_finish(parser);
   if (err != HPE_OK && err != HPE_PAUSED)
   {
     lua_pushnil(L);
@@ -427,8 +427,7 @@ static int lhttp_parser_finish (lua_State *L) {
     return 2;
     luaL_error(L, "error");
   }
-  pos = llhttp_get_error_pos(parser);
-  nparsed = (size_t)pos;
+  nparsed = 0;
 #else
   nparsed = http_parser_execute(parser, &lhttp_parser_settings, NULL, 0);
 #endif
