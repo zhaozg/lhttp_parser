@@ -92,10 +92,12 @@ function parse_url_test()
         },
     }
 
+    if not lhp.llhttp then
     for _, tast_case in ipairs(tast_cases) do
         local url, is_connect, expect = tast_case[1], tast_case[2], tast_case[3]
         local result = lhp.parseUrl(url, is_connect)
         is_deeply(result, expect, 'Url: ' .. url)
+    end
     end
 end
 
@@ -326,6 +328,7 @@ function max_events_test(N)
     ok(#input < result,
        "Expect " .. header_cnt .. " field events, got " .. field_cnt)
 
+    print('input', #input, input)
     result = parser:execute(input)
 
     ok(0 == result, "Parser can not continue after stack overflow ["
@@ -449,6 +452,9 @@ function init_parser()
 
    function cb.onUrl(value)
        cur.url = cur.url and (cur.url .. value) or value;
+       if not lhp.llhttp then
+          cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(cur.url)
+       end
    end
 
    function cb.onBody(value)
@@ -459,9 +465,6 @@ function init_parser()
    end
 
    function cb.onHeaderField(field)
-       if not cur.path then
-       cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(cur.url)
-       end
        cur.field = cur.field and (cur.field..field) or field
    end
 
