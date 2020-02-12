@@ -415,7 +415,6 @@ static int lhttp_parser_finish (lua_State *L) {
   size_t nparsed;
 #ifdef USE_LLHTTP
   llhttp_errno_t err;
-  const char* pos;
 #endif
 
 #ifdef USE_LLHTTP
@@ -425,7 +424,6 @@ static int lhttp_parser_finish (lua_State *L) {
     lua_pushnil(L);
     lua_pushstring(L, llhttp_errno_name(err));
     return 2;
-    luaL_error(L, "error");
   }
   nparsed = 0;
 #else
