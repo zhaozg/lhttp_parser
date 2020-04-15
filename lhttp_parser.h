@@ -24,5 +24,6 @@
 #include <lauxlib.h>
 
 LUALIB_API int luaopen_lhttp_parser (lua_State *L);
+int lhttp_parser_parse_url (lua_State *L);
 
 #endif

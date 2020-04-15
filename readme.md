@@ -92,9 +92,11 @@ encounters the various fields.  All callbacks will be ran with the full value
 for that field with onBody being the notible exception.
 
 
-#### `parser:execute(input_bytes)`
+#### `parser:execute(input_bytes[, i=1[, j=-1]])`
 
-Feed the parser some partial input.  Returns how many bytes where read.  A short read may happen if a request is being "upgraded" or was an invalid format.  See parser:is_upgrade() below to differentiate between these two events (if you want to support an upgraded protocol).
+Feed the parser some partial input, that starts at i and continues until j; i and j can be negative. If j is absent, then it is assumed to be equal to -1 (which is the same as the string length), same with `string.sub(...)`. The first character is at position 1 (not at 0, as in C). Indices are allowed to be negative and are interpreted as indexing backwards, from the end of the string. Thus, the last character is at position -1, and so on.
+
+Returns how many bytes where read.  A short read may happen if a request is being "upgraded" or was an invalid format.  See parser:is_upgrade() below to differentiate between these two events (if you want to support an upgraded protocol).
 
 #### `parser:finish()`
 

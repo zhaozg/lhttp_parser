@@ -45,32 +45,11 @@ typedef llhttp_t http_parser;
 #endif
 
 static const char* method_to_str(unsigned short m) {
-  switch (m) {
-    case HTTP_DELETE:     return "DELETE";
-    case HTTP_GET:        return "GET";
-    case HTTP_HEAD:       return "HEAD";
-    case HTTP_POST:       return "POST";
-    case HTTP_PUT:        return "PUT";
-    case HTTP_CONNECT:    return "CONNECT";
-    case HTTP_OPTIONS:    return "OPTIONS";
-    case HTTP_TRACE:      return "TRACE";
-    case HTTP_COPY:       return "COPY";
-    case HTTP_LOCK:       return "LOCK";
-    case HTTP_MKCOL:      return "MKCOL";
-    case HTTP_MOVE:       return "MOVE";
-    case HTTP_PROPFIND:   return "PROPFIND";
-    case HTTP_PROPPATCH:  return "PROPPATCH";
-    case HTTP_UNLOCK:     return "UNLOCK";
-    case HTTP_REPORT:     return "REPORT";
-    case HTTP_MKACTIVITY: return "MKACTIVITY";
-    case HTTP_CHECKOUT:   return "CHECKOUT";
-    case HTTP_MERGE:      return "MERGE";
-    case HTTP_MSEARCH:    return "MSEARCH";
-    case HTTP_NOTIFY:     return "NOTIFY";
-    case HTTP_SUBSCRIBE:  return "SUBSCRIBE";
-    case HTTP_UNSUBSCRIBE:return "UNSUBSCRIBE";
-    default:              return "UNKNOWN_METHOD";
-  }
+ #ifdef USE_LLHTTP
+  return llhttp_method_name(m);
+#else
+  return http_method_str(m);
+#endif
 }
 
 
@@ -363,6 +342,42 @@ static int lhttp_parser_new (lua_State *L) {
   return 1;
 }
 
+/*
+** translate a relative initial string position
+** (negative means back from end): clip result to [1, inf).
+** The length of any string in Lua must fit in a lua_Integer,
+** so there are no overflows in the casts.
+** The inverted comparison avoids a possible overflow
+** computing '-pos'.
+*/
+static size_t posrelatI (lua_Integer pos, size_t len) {
+  if (pos > 0)
+    return (size_t)pos;
+  else if (pos == 0)
+    return 1;
+  else if (pos < -(lua_Integer)len)  /* inverted comparison */
+    return 1;  /* clip to 1 */
+  else return len + (size_t)pos + 1;
+}
+
+
+/*
+** Gets an optional ending string position from argument 'arg',
+** with default value 'def'.
+** Negative means back from end: clip result to [0, len]
+*/
+static size_t getendpos (lua_State *L, int arg, lua_Integer def,
+                         size_t len) {
+  lua_Integer pos = luaL_optinteger(L, arg, def);
+  if (pos > (lua_Integer)len)
+    return len;
+  else if (pos >= 0)
+    return (size_t)pos;
+  else if (pos < -(lua_Integer)len)
+    return 0;
+  else return len + (size_t)pos + 1;
+}
+
 /* execute(parser, buffer, offset, length) */
 static int lhttp_parser_execute (lua_State *L) {
   http_parser* parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
@@ -379,8 +394,8 @@ static int lhttp_parser_execute (lua_State *L) {
   luaL_checktype(L, 2, LUA_TSTRING);
   chunk = lua_tolstring(L, 2, &chunk_len);
 
-  offset = luaL_optint(L, 3, 0);
-  length = luaL_optint(L, 4, chunk_len);
+  offset = posrelatI(luaL_optinteger(L, 3, 1), chunk_len) - 1;
+  length = getendpos(L, 4, -1, chunk_len) - offset;
 
   luaL_argcheck(L, offset <= chunk_len, 3, "Offset is out of bounds");
   luaL_argcheck(L, offset + length <= chunk_len, 4,  "Length extends beyond end of chunk");
@@ -462,50 +477,6 @@ static int lhttp_parser_reinitialize (lua_State *L) {
   }
 
   return 0;
-}
-
-static int lhttp_parser_parse_url (lua_State *L) {
-#ifdef USE_LLHTTP
-  return luaL_error(L, "Not yet implement by llhttp");
-#else
-  size_t len;
-  const char *url;
-  struct http_parser_url u;
-  int is_connect;
-  url = luaL_checklstring(L, 1, &len);
-  is_connect = lua_tointeger(L, 2);
-  if (http_parser_parse_url(url, len, is_connect, &u)) {
-    luaL_error(L, "Error parsing url %s", url);
-  }
-  lua_newtable(L);
-  if (u.field_set & (1 << UF_SCHEMA)) {
-    lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);
-    lua_setfield(L, -2, "schema");
-  }
-  if (u.field_set & (1 << UF_HOST)) {
-    lua_pushlstring(L, url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
-    lua_setfield(L, -2, "host");
-  }
-  if (u.field_set & (1 << UF_PORT)) {
-    lua_pushlstring(L, url + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len);
-    lua_setfield(L, -2, "port_string");
-    lua_pushnumber(L, u.port);
-    lua_setfield(L, -2, "port");
-  }
-  if (u.field_set & (1 << UF_PATH)) {
-    lua_pushlstring(L, url + u.field_data[UF_PATH].off, u.field_data[UF_PATH].len);
-    lua_setfield(L, -2, "path");
-  }
-  if (u.field_set & (1 << UF_QUERY)) {
-    lua_pushlstring(L, url + u.field_data[UF_QUERY].off, u.field_data[UF_QUERY].len);
-    lua_setfield(L, -2, "query");
-  }
-  if (u.field_set & (1 << UF_FRAGMENT)) {
-    lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
-    lua_setfield(L, -2, "fragment");
-  }
-  return 1;
-#endif
 }
 
 /******************************************************************************/
