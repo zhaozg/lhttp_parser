@@ -1,6 +1,6 @@
 HPARSER	?= llhttp
 uname_S	 =$(shell uname -s)
-OBJS	 =lhttp_parser.o lhttp_parser_url.o http_parser.o url_parser.o
+OBJS	 =lhttp_parser.o lhttp_parser_url.o http_parser.o url_parser.o lhttp_url.o
 
 ifeq (Darwin, $(uname_S))
   CFLAGS=-Ihttp-parser -I/usr/local/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
@@ -34,6 +34,9 @@ llhttp.o: llhttp/src/llhttp.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
 lhttp_parser.o: lhttp_parser.c
+	$(CC) -c $< -o $@ ${CFLAGS}
+
+lhttp_url.o: lhttp_url.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
 lhttp_parser.so: ${OBJS}
