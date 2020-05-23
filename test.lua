@@ -58,6 +58,8 @@ function pipeline_test()
   local parser = lhp.new('request', cbs)
   ok(parser:execute(pipeline) == #pipeline)
 
+  ok(headers.version_major == 1)
+  ok(headers.version_minor == 1)
   ok(headers.should_keep_alive == true)
   ok(headers.method == "GET")
   ok(complete_count == 2)
