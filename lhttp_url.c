@@ -300,15 +300,6 @@ uint8_t utf8_len(const char* str)
 
 int lhttp_parser_parse_url (lua_State *L);
 
-static const struct luaL_Reg R[] =
-{
-  {"encode", encode_url},
-  {"decode", decode_url},
-  {"parse", lhttp_parser_parse_url},
-
-  {NULL, NULL},
-};
-
 #if LUA_VERSION_NUM < 502
 /* lua_rawlen: Not entirely correct, but should work anyway */
 # ifndef lua_rawlen
@@ -331,6 +322,15 @@ static const struct luaL_Reg R[] =
 
 int luaopen_lhttp_url (lua_State *L)
 {
+  static const struct luaL_Reg R[] =
+  {
+    {"encode", encode_url},
+    {"decode", decode_url},
+    {"parse", lhttp_parser_parse_url},
+
+    {NULL, NULL},
+  };
+
   luaL_newlib(L, R);
   return 1;
 };
