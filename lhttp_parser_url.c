@@ -38,6 +38,10 @@ int lhttp_parser_parse_url (lua_State *L) {
     lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
     lua_setfield(L, -2, "fragment");
   }
+  if (u.field_set & (1 << UF_USERINFO)) {
+    lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
+    lua_setfield(L, -2, "userinfo");
+  }
   return 1;
 }
 

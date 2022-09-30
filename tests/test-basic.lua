@@ -21,10 +21,8 @@ require("lib/tap")(function(test)
         if (got[k] ~= expect[k]) then
           print("# Expected [" .. ctx .. "] to be '" .. tostring(expect[k]) ..
             "', but got '" .. tostring(got[k]) .. "'")
-          print('god')
-          p(got)
-          print('expect')
-          p(expect)
+          p('got', got)
+          p('expect', expect)
           assert(false, msg)
           return false
         end
@@ -56,7 +54,7 @@ require("lib/tap")(function(test)
 
     function cb.onHeaderField(field)
       if not cur.path then
-        local url = lhp.url.parse(cur.url, parser:method()=='CONNECT')
+        local url = lhp.url.parse(cur.url, parser:method() == 'CONNECT')
         cur.path, cur.query, cur.fragment = url.path, url.query, url.fragment
       end
       cur.field = cur.field and (cur.field .. field) or field
@@ -95,7 +93,7 @@ require("lib/tap")(function(test)
   end
 
   test("lhttp_parser pipeline", function(p, p, expect, uv)
-  local pipeline = [[
+    local pipeline = [[
 GET / HTTP/1.1
 Host: localhost
 User-Agent: httperf/0.9.0
@@ -123,8 +121,8 @@ Connection: keep-alive
     local parser = lhp.new('request', cbs)
     assert(parser:execute(pipeline) == #pipeline)
 
-    assert(headers.version_major == 1)
-    assert(headers.version_minor == 1)
+    assert(headers.http_major == 1)
+    assert(headers.http_minor == 1)
     assert(headers.should_keep_alive == true)
     assert(headers.method == "GET")
     assert(complete_count == 2)
@@ -361,7 +359,6 @@ Connection: close
 
   expects.ab = {
     path = "/foo/t.html",
-    query_string = "qstring",
     fragment = "frag",
     url = "/foo/t.html?qstring#frag",
     headers = {
@@ -371,11 +368,6 @@ Connection: close
     },
     body = { "body\n" }
   }
-  if lhp.llhttp then
-    expects.ab.path = nil
-    expects.ab.query_string = nil
-    expects.ab.fragment = nil
-  end
 
   requests.no_buff_body = {
     "GET / HTTP/1.1\r\n", "Host: foo:80\r\n", "Content-Length: 12\r\n", "\r\n",

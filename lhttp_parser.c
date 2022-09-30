@@ -258,9 +258,9 @@ static int lhttp_parser_on_headers_complete(http_parser *p) {
 
   /* VERSION */
   lua_pushinteger(L, p->http_major);
-  lua_setfield(L, -2, "version_major");
+  lua_setfield(L, -2, "http_major");
   lua_pushinteger(L, p->http_minor);
-  lua_setfield(L, -2, "version_minor");
+  lua_setfield(L, -2, "http_minor");
 
 #ifdef USE_LLHTTP
   lua_pushboolean(L, llhttp_should_keep_alive(p));
@@ -268,6 +268,11 @@ static int lhttp_parser_on_headers_complete(http_parser *p) {
   lua_pushboolean(L, http_should_keep_alive(p));
 #endif
   lua_setfield(L, -2, "should_keep_alive");
+
+#ifdef USE_LLHTTP
+  lua_pushboolean(L, llhttp_message_needs_eof(p));
+  lua_setfield(L, -2, "message_needs_eof");
+#endif
 
   lua_pushboolean(L, p->upgrade);
   lua_setfield(L, -2, "upgrade");
