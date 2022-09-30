@@ -411,7 +411,7 @@ static int lhttp_parser_execute (lua_State *L) {
   size_t length;
   size_t nparsed;
 #ifdef USE_LLHTTP
-  llhttp_errno_t err;
+  llhttp_errno_t err = HPE_OK;
   const char* pos;
 #endif
 
@@ -430,7 +430,7 @@ static int lhttp_parser_execute (lua_State *L) {
   if (chunk_len)
   {
     err = llhttp_execute(parser, chunk + offset, length);
-    if (err != HPE_OK && err != HPE_PAUSED)
+    if (err != HPE_OK && err != HPE_PAUSED && err != HPE_PAUSED_UPGRADE && err != HPE_STRICT)
     {
       lua_pushnil(L);
       lua_pushstring(L, llhttp_errno_name(err));
@@ -443,12 +443,16 @@ static int lhttp_parser_execute (lua_State *L) {
       nparsed = (pos - chunk - offset);
   }else
     nparsed = 0;
+
+  lua_pushnumber(L, nparsed);
+  lua_pushstring(L, llhttp_errno_name(err));
+  return 2;
 #else
   nparsed = http_parser_execute(parser, &lhttp_parser_settings, chunk + offset, length);
-#endif
 
   lua_pushnumber(L, nparsed);
   return 1;
+#endif
 }
 
 static int lhttp_parser_finish (lua_State *L) {

@@ -3,14 +3,14 @@
 
 int lhttp_parser_parse_url (lua_State *L) {
   size_t len;
-  const char *url;
+  const char *url = luaL_checklstring(L, 1, &len);
+  int is_connect = lua_toboolean(L, 2);
+
   struct http_parser_url u;
-  int is_connect;
-  url = luaL_checklstring(L, 1, &len);
-  is_connect = lua_tointeger(L, 2);
   if (http_parser_parse_url(url, len, is_connect, &u)) {
-    luaL_error(L, "Error parsing url %s", url);
+    return 0;
   }
+
   lua_newtable(L);
   if (u.field_set & (1 << UF_SCHEMA)) {
     lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);

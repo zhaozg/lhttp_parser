@@ -1,7 +1,24 @@
 
-local table = require('table')
-
+local uv = require('luv')
 local utils = {}
+local usecolors
+
+if uv.guess_handle(1) == "tty" then
+  utils.stdout = uv.new_tty(1, false)
+  usecolors = true
+else
+  utils.stdout = uv.new_pipe(false)
+  uv.pipe_open(utils.stdout, 1)
+  usecolors = false
+end
+
+if _G.jit and _G.jit.os then
+  -- Luajit provides explicit platform detection
+  utils.isWindows = _G.jit.os == "Windows"
+else
+  -- Normal lua will only have \ for path separator on windows.
+  utils.isWindows = package.config:find("\\") and true or false
+end
 
 local colors = {
   black   = "0;30",
@@ -23,12 +40,8 @@ local colors = {
   Bwhite   = "1;37"
 }
 
-if utils._useColors == nil then
-  utils._useColors = true
-end
-
 function utils.color(color_name)
-  if utils._useColors then
+  if usecolors then
     return "\27[" .. (colors[color_name] or "0") .. "m"
   else
     return ""
@@ -41,8 +54,8 @@ end
 
 local backslash, null, newline, carriage, tab, quote, quote2, obracket, cbracket
 
-function utils.loadColors (n)
-  if n ~= nil then utils._useColors = n end
+function utils.loadColors(n)
+  if n ~= nil then usecolors = n end
   backslash = utils.colorize("Bgreen", "\\\\", "green")
   null      = utils.colorize("Bgreen", "\\0", "green")
   newline   = utils.colorize("Bgreen", "\\n", "green")
@@ -54,7 +67,7 @@ function utils.loadColors (n)
   cbracket  = utils.colorize("B", ']')
 end
 
-utils.loadColors ()
+utils.loadColors()
 
 function utils.dump(o, depth)
   local t = type(o)
@@ -131,16 +144,17 @@ function utils.dump(o, depth)
   return tostring(o)
 end
 
--- Replace print
-function utils.print(...)
-  local n = select('#', ...)
-  local arguments = { ... }
 
+
+-- Print replacement that goes through libuv.  This is useful on windows
+-- to use libuv's code to translate ansi escape codes to windows API calls.
+function print(...)
+  local n = select('#', ...)
+  local arguments = {...}
   for i = 1, n do
     arguments[i] = tostring(arguments[i])
   end
-
-  utils.stdout:write(table.concat(arguments, "\t") .. "\n")
+  uv.write(utils.stdout, table.concat(arguments, "\t") .. "\n")
 end
 
 -- A nice global data dumper
@@ -152,43 +166,22 @@ function utils.prettyPrint(...)
     arguments[i] = utils.dump(arguments[i])
   end
 
-  utils.stdout:write(table.concat(arguments, "\t") .. "\n")
+  print(table.concat(arguments, "\t"))
 end
 
--- prettyprint to stderr
-function utils.debug(...)
-  local n = select('#', ...)
-  local arguments = { ... }
-
-  for i = 1, n do
-    arguments[i] = utils.dump(arguments[i])
+function utils.uvVersionGEQ(min_version)
+  if not min_version then return true end
+  local min_version_num = min_version
+  if type(min_version) == "string" then
+    local version_parts = {}
+    for part in min_version:gmatch("%d+") do
+      table.insert(version_parts, tonumber(part))
+    end
+    assert(#version_parts == 3, "malformed version string: " .. min_version)
+    min_version_num = version_parts[1]*0x10000 + version_parts[2]*0x100 + version_parts[3]
   end
-
-  utils.stderr:write(table.concat(arguments, "\t") .. "\n")
+  return uv.version() >= min_version_num
 end
-
 
 return utils
 
---print("nil", utils.dump(nil))
-
---print("number", utils.dump(42))
-
---print("boolean", utils.dump(true), utils.dump(false))
-
---print("string", dump("\"Hello\""), dump("world\nwith\r\nnewlines\r\t\n"))
-
---print("funct", dump(print))
-
---print("table", dump({
---  ["nil"] = nil,
---  ["8"] = 8,
---  ["number"] = 42,
---  ["boolean"] = true,
---  ["table"] = {age = 29, name="Tim"},
---  ["string"] = "Another String",
---  ["function"] = dump,
---  ["thread"] = coroutine.create(dump),
---  [print] = {{"deep"},{{"nesting"}},3,4,5},
---  [{1,2,3}] = {4,5,6}
---}))
