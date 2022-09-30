@@ -621,10 +621,10 @@ LUALIB_API int luaopen_lhttp_parser (lua_State *L) {
   lua_setfield(L, -2, "__tostring");
   lua_pushcfunction(L, lhttp_parser_gc);
   lua_setfield(L, -2, "__gc");
-
-  lua_pushvalue(L, -1);
-  lua_setfield(L, -2, "__index");
+  lua_newtable(L);
   luaL_setfuncs(L, lhttp_parser_m, 0);
+  lua_setfield(L, -2, "__index");
+  lua_pop(L, 1);
 
   /* Put our one function on it */
   luaL_newlib(L, lhttp_parser_f);
