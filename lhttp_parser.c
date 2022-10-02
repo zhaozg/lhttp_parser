@@ -598,6 +598,28 @@ static int lhttp_parser_should_keep_alive(lua_State *L) {
   return 1;
 }
 
+static int lhttp_parser_pause(lua_State *L) {
+  http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+#ifdef USE_LLHTTP
+  llhttp_pause(parser);
+#else
+  http_parser_pause(parser, 1);
+#endif
+  lua_pushvalue(L, 1);
+  return 1;
+}
+
+static int lhttp_parser_resume(lua_State *L) {
+  http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+#ifdef USE_LLHTTP
+  llhttp_resume(parser);
+#else
+  http_parser_pause(parser, 0);
+#endif
+  lua_pushvalue(L, 1);
+  return 1;
+}
+
 static int lhttp_parser_tostring(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
   lua_pushfstring(L, "lhttp_parser %p", parser);
@@ -621,6 +643,8 @@ static const luaL_Reg lhttp_parser_m[] = {
     {"should_keep_alive", lhttp_parser_should_keep_alive},
     {"execute", lhttp_parser_execute},
     {"finish", lhttp_parser_finish},
+    {"pause", lhttp_parser_pause},
+    {"resume", lhttp_parser_resume},
     {"reinitialize", lhttp_parser_reinitialize},
 
     {NULL, NULL}};
