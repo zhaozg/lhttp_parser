@@ -682,8 +682,6 @@ LUALIB_API int luaopen_lhttp_parser(lua_State *L) {
 
   /* Put our one function on it */
   luaL_newlib(L, lhttp_parser_f);
-  luaopen_lhttp_url(L);
-  lua_setfield(L, -2, "url");
 
   /* Stick version info on the http_parser table */
 #ifdef USE_LLHTTP
