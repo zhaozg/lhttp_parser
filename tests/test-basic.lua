@@ -1,5 +1,6 @@
 require("lib/tap")(function(test)
   local lhp = require('lhttp_parser')
+  local url = require('lhttp_url')
   local p = require('lib/utils').prettyPrint
 
   local function is_deeply(got, expect, msg, context)
@@ -54,7 +55,7 @@ require("lib/tap")(function(test)
 
     function cb.onHeaderField(field)
       if not cur.path then
-        local url = lhp.url.parse(cur.url, parser:method() == 'CONNECT')
+        local url = url.parse(cur.url, parser:method() == 'CONNECT')
         cur.path, cur.query, cur.fragment = url.path, url.query, url.fragment
       end
       cur.field = cur.field and (cur.field .. field) or field

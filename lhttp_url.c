@@ -320,7 +320,7 @@ int lhttp_parser_parse_url (lua_State *L);
 # endif
 #endif
 
-int luaopen_lhttp_url (lua_State *L)
+LUALIB_API int luaopen_lhttp_url (lua_State *L)
 {
   static const struct luaL_Reg R[] =
   {

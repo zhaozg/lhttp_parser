@@ -456,12 +456,13 @@ end
 
 local function init_parser(connect)
   local lhp = require('lhttp_parser')
+  local URL = require('lhttp_url')
   local reqs = {}
   local cur = nil
   local cb = {}
 
   local function parse_path_query_fragment(uri)
-    local url = lhp.url.parse(uri, connect)
+    local url = URL.parse(uri, connect)
     if url then
       return url.path, url.query, url.fragment
     end

@@ -10,13 +10,13 @@ else
   LIBS=-lm -lpthread -lrt
 endif
 
-SHARED_LIB_FLAGS=-shared -o lhttp_parser.so
+SHARED_LIB_FLAGS=-shared -o
 ifeq (llhttp, $(HPARSER))
   CFLAGS+=-DUSE_LLHTTP -Illhttp/include
   OBJS+=api.o llhttp.o http.o
 endif
 
-all: lhttp_parser.so
+all: lhttp_parser.so lhttp_url.so
 
 http_parser.o: http-parser/http_parser.c
 	$(CC) -c $< -o $@ ${CFLAGS}
@@ -39,8 +39,14 @@ lhttp_parser.o: lhttp_parser.c
 lhttp_url.o: lhttp_url.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
+lhttp_parser_url.o: lhttp_parser_url.c
+	$(CC) -c $< -o $@ ${CFLAGS}
+
 lhttp_parser.so: ${OBJS}
-	$(CC) ${SHARED_LIB_FLAGS} ${OBJS} ${LIBS}
+	$(CC) ${SHARED_LIB_FLAGS} $@ ${OBJS} ${LIBS}
+
+lhttp_url.so: ${OBJS}
+	$(CC) ${SHARED_LIB_FLAGS} $@ ${OBJS} ${LIBS}
 
 clean:
 	rm -f *.so *.o
