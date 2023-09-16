@@ -236,7 +236,15 @@ Connection: close
 
     local parser = lhp.new('response', cbs)
     local code, status = parser:execute(please_continue)
-    assert(code==147)
+    assert(code==38)
+    assert(status=='HPE_PAUSED_UPGRADE')
+    assert(headers.should_keep_alive == true)
+    assert(headers.status_code == 100)
+    assert(complete_count == 1)
+    assert(#body == 0)
+
+    code, status = parser:resume_after_upgrade():execute(please_continue, code+1)
+    assert(status==89)
     assert(status=='HPE_OK')
     assert(headers.should_keep_alive == false)
     assert(headers.status_code == 200)
