@@ -82,7 +82,7 @@ if requests.GET then
   name = "host:port and basic_auth"
   requests[name] = "GET http://a%12:b!&*$@hypnotoad.org:1234/toto HTTP/1.1\r\n" .. "\r\n"
 
-  name = "line folding in header value"
+  name = "invalid: line folding in header value"
   requests[name] = "GET / HTTP/1.1\n"
       .. "Line1:   abc\n"
       .. "\tdef\n"
@@ -252,7 +252,7 @@ if requests.MISC then
   name = "request with no http version"
   requests[name] = "GET /\r\n" .. "\r\n"
 
-  name = "line folding in header value"
+  name = "invalid: line folding in header value"
   requests[name] = "GET / HTTP/1.1\r\n"
       .. "Line1:   abc\r\n"
       .. "\tdef\r\n"
@@ -526,11 +526,11 @@ return require("lib/tap")(function(test)
       test(k, function(p, p, expect, uv)
         local connect = k:match("connect ") ~= nil
         local parser, reqs = init_parser(connect)
-        local bytes_read = parser:execute(v)
+        local bytes_read, status = parser:execute(v)
         if not k:match("^HPE_INVALID") and not k:match("^invalid") and not k:match("underscore") then
           assert(
             bytes_read == #v,
-            "only [" .. tostring(bytes_read) .. "] bytes read, expected [" .. tostring(#v) .. "] in " .. k
+            "only [" .. tostring(bytes_read) .. "] bytes read, expected [" .. tostring(#v) .. "] in `" .. k .. '`\n' .. v
           )
           local got = reqs[#reqs]
           local found = false

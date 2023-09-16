@@ -235,8 +235,9 @@ Connection: close
     function cbs.onHeadersComplete(info) headers = info end
 
     local parser = lhp.new('response', cbs)
-    parser:execute(please_continue)
-
+    local code, status = parser:execute(please_continue)
+    assert(code==147)
+    assert(status=='HPE_OK')
     assert(headers.should_keep_alive == false)
     assert(headers.status_code == 200)
     assert(complete_count == 2)
