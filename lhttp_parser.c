@@ -446,7 +446,6 @@ static int lhttp_parser_execute(lua_State *L) {
   size_t nparsed;
 #ifdef USE_LLHTTP
   llhttp_errno_t err = HPE_OK;
-  const char *pos;
 #endif
 
   luaL_checktype(L, 2, LUA_TSTRING);
@@ -462,19 +461,22 @@ static int lhttp_parser_execute(lua_State *L) {
   ctx->L = L;
 
 #ifdef USE_LLHTTP
-  if (chunk_len) {
-    err = llhttp_execute(parser, chunk + offset, length);
+  if (length) {
+    chunk += offset;
+    err = llhttp_execute(parser, chunk, length);
     if (err != HPE_OK && err != HPE_PAUSED && err != HPE_PAUSED_UPGRADE &&
         err != HPE_STRICT) {
       lua_pushnil(L);
       lua_pushstring(L, llhttp_errno_name(err));
       return 2;
     }
-    pos = llhttp_get_error_pos(parser);
-    if (pos == NULL)
+
+    if (err != HPE_OK) {
+      const char *pos = llhttp_get_error_pos(parser);
+      nparsed = pos - chunk;
+    } else {
       nparsed = length;
-    else
-      nparsed = (pos - chunk - offset);
+    }
   } else
     nparsed = 0;
 
@@ -613,6 +615,7 @@ static int lhttp_parser_resume(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
 #ifdef USE_LLHTTP
   llhttp_resume(parser);
+  llhttp_set_error_reason(parser, NULL);
 #else
   http_parser_pause(parser, 0);
 #endif
@@ -624,6 +627,7 @@ static int lhttp_resume_after_upgrade(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
 #ifdef USE_LLHTTP
   llhttp_resume_after_upgrade(parser);
+  llhttp_set_error_reason(parser, NULL);
 #else
   http_parser_pause(parser, 0);
 #endif

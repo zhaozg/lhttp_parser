@@ -244,7 +244,7 @@ Connection: close
     assert(#body == 0)
 
     code, status = parser:resume_after_upgrade():execute(please_continue, code+1)
-    assert(status==89)
+    assert(code==109, code)
     assert(status=='HPE_OK')
     assert(headers.should_keep_alive == false)
     assert(headers.status_code == 200)
