@@ -360,7 +360,7 @@ static int lhttp_parser_on_chunk_complete(http_parser *p) {
 /* Takes as arguments a string for type and a table for event callbacks */
 static int lhttp_parser_new(lua_State *L) {
   int itype;
-  const char *type = luaL_checkstring(L, 1);
+  const char *type = luaL_optstring(L, 1, "both");
   http_parser *parser;
   parser_ctx *ctx;
 
@@ -374,8 +374,10 @@ static int lhttp_parser_new(lua_State *L) {
     itype = HTTP_REQUEST;
   } else if (0 == strcmp(type, "response")) {
     itype = HTTP_RESPONSE;
+  } else if (0 == strcmp(type, "both")) {
+    itype = HTTP_BOTH;
   } else {
-    return luaL_argerror(L, 1, "type must be 'request' or 'response'");
+    return luaL_argerror(L, 1, "type must be 'request', 'response' or 'both'");
   }
 #ifdef USE_LLHTTP
   llhttp_init(parser, itype, &lhttp_parser_settings);
@@ -495,12 +497,9 @@ static int lhttp_parser_execute(lua_State *L) {
 static int lhttp_parser_finish(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
   size_t nparsed;
-#ifdef USE_LLHTTP
-  llhttp_errno_t err;
-#endif
 
 #ifdef USE_LLHTTP
-  err = llhttp_finish(parser);
+  llhttp_errno_t err = llhttp_finish(parser);
   if (err != HPE_OK && err != HPE_PAUSED) {
     lua_pushnil(L);
     lua_pushstring(L, llhttp_errno_name(err));
