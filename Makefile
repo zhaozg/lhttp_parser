@@ -69,6 +69,10 @@ lhttp_parser.so: ${OBJS}
 lhttp_url.so: ${OBJS}
 	$(CC) ${CFLAGS} ${SHARED_LIB_FLAGS} $@ ${OBJS} ${LIBS}
 
+test: all
+	luajit tests/run.lua
+	luajit bench.lua
+
 asan: all
 ifeq (Darwin, $(uname_S))
 	ASAN_LIB=$(ASAN_LIB) \

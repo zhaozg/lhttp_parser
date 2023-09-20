@@ -1,6 +1,6 @@
 require("lib/tap")(function(test)
   local lhp = require('lhttp_parser')
-  local url = require('lhttp_url')
+  local lurl = require('lhttp_url')
   local p = require('lib/utils').prettyPrint
 
   local function is_deeply(got, expect, msg, context)
@@ -35,8 +35,8 @@ require("lib/tap")(function(test)
 
   local function init_parser()
     local reqs = {}
-    local cur = nil
     local cb = {}
+    local cur
     local parser
 
     function cb.onMessageBegin()
@@ -55,7 +55,7 @@ require("lib/tap")(function(test)
 
     function cb.onHeaderField(field)
       if not cur.path then
-        local url = url.parse(cur.url, parser:method() == 'CONNECT')
+        local url = lurl.parse(cur.url, parser:method() == 'CONNECT')
         cur.path, cur.query, cur.fragment = url.path, url.query, url.fragment
       end
       cur.field = cur.field and (cur.field .. field) or field
@@ -112,7 +112,7 @@ Connection: keep-alive
     local cbs = {}
     local complete_count = 0
     local body = ''
-    local headers = nil
+    local headers
     function cbs.onBody(chunk) if chunk then body = body .. chunk end end
 
     function cbs.onMessageComplete() complete_count = complete_count + 1 end
@@ -186,7 +186,7 @@ Connection: keep-alive
   end)
 
   test("lhttp_parser reset callback", function(p, p, expect, uv)
-    local headers1, headers2, url = {}, {}
+    local headers1, headers2, url = {}, {}, nil
 
     local parser = lhp.new('request', {
       onHeaderField = function(h) headers1[#headers1 + 1] = h end,
@@ -226,7 +226,7 @@ Connection: close
     local cbs = {}
     local complete_count = 0
     local body = ''
-    local headers = nil
+    local headers
 
     function cbs.onBody(chunk) if chunk then body = body .. chunk end end
 
@@ -264,7 +264,7 @@ Connection: close
     local cbs = {}
     local complete_count = 0
     local body = ''
-    local headers = nil
+    local headers
 
     function cbs.onBody(chunk) if chunk then body = body .. chunk end end
 
@@ -422,9 +422,9 @@ Connection: close
       end
 
       local got = reqs[#reqs]
-      local expect = expects[name]
+      local expected = expects[name]
       assert(got.info.method == "GET", "Method is GET")
-      is_deeply(got, expect, "Check " .. name)
+      is_deeply(got, expected, "Check " .. name)
     end)
   end
 end)

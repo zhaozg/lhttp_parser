@@ -138,7 +138,7 @@ for name, data in pairs(requests) do
 end
 
 local function init_parser(reqs)
-  local cur = nil
+  local cur
   local parser
 
   local cb = {}

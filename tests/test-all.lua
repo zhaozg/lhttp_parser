@@ -10,6 +10,7 @@ local requests = {
   CHUNK = true,
   COMPLEX = true, --OK
 }
+
 local all_methods = {
   "DELETE",
   "GET",
@@ -458,8 +459,8 @@ local function init_parser(connect)
   local lhp = require('lhttp_parser')
   local URL = require('lhttp_url')
   local reqs = {}
-  local cur = nil
   local cb = {}
+  local cur
 
   local function parse_path_query_fragment(uri)
     local url = URL.parse(uri, connect)
