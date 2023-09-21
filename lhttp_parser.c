@@ -513,36 +513,13 @@ static int lhttp_parser_finish(lua_State *L) {
   return 1;
 }
 
-static int lhttp_parser_reinitialize(lua_State *L) {
+static int lhttp_parser_reset(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
-  parser_ctx *ctx = parser->data;
-  int itype;
-  const char *type = luaL_checkstring(L, 2);
 
-  if (0 == strcmp(type, "request")) {
-    itype = HTTP_REQUEST;
-  } else if (0 == strcmp(type, "response")) {
-    itype = HTTP_RESPONSE;
-  } else {
-    return luaL_argerror(L, 1, "type must be 'request' or 'response'");
-  }
 #ifdef USE_LLHTTP
-  llhttp_init(parser, itype, &lhttp_parser_settings);
-#else
-  http_parser_init(parser, itype);
+  llhttp_reset(parser);
+  return 1;
 #endif
-  /* Store the current lua state in the parser's data */
-  parser->data = ctx;
-
-  if (!lua_isnoneornil(L, 3)) {
-    luaL_checktype(L, 3, LUA_TTABLE);
-
-    luaL_unref(L, LUA_REGISTRYINDEX, ctx->ref);
-
-    /* Set the callback table as the userdata's environment */
-    lua_pushvalue(L, 3);
-    ctx->ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
 
   return 0;
 }
@@ -661,7 +638,7 @@ static const luaL_Reg lhttp_parser_m[] = {
     {"pause", lhttp_parser_pause},
     {"resume", lhttp_parser_resume},
     {"resume_after_upgrade", lhttp_resume_after_upgrade},
-    {"reinitialize", lhttp_parser_reinitialize},
+    {"reset", lhttp_parser_reset},
 
     {NULL, NULL}};
 

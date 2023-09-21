@@ -176,8 +176,10 @@ Connection: keep-alive
     local parser = lhp.new('request', { onUrl = function(u) url = u end })
 
     parser:execute('GET /path1 HTTP/1.1')
+    assert(parser:method() == 'GET')
+    assert(url == '/path1')
 
-    parser:reinitialize('request')
+    parser:reset('request')
 
     parser:execute('' .. 'POST /path2 HTTP/1.1\r\n' .. '\r\n')
 
@@ -186,24 +188,27 @@ Connection: keep-alive
   end)
 
   test("lhttp_parser reset callback", function(p, p, expect, uv)
-    local headers1, headers2, url = {}, {}, nil
+    local headers1, headers2, url, headers = {}, {}, nil, {}
 
     local parser = lhp.new('request', {
-      onHeaderField = function(h) headers1[#headers1 + 1] = h end,
-      onHeaderValue = function(v) headers1[headers1[#headers1]] = v end,
+      onHeaderField = function(h) headers[#headers + 1] = h end,
+      onHeaderValue = function(v) headers[headers[#headers]] = v end,
       onUrl = function(u) url = u end
     })
 
-    -- reset on_header and remove on_url
-    parser:reinitialize('request', {
-      onHeaderField = function(h) headers2[#headers2 + 1] = h end,
-      onHeaderValue = function(v) headers2[headers2[#headers2]] = v end
-    })
-
+    headers = headers1
     parser:execute('' .. 'GET /path HTTP/1.1\r\n' .. 'A: b\r\n' .. '\r\n')
 
-    assert(url == nil, "reset should remove callback")
-    assert(headers1.A == nil and headers2.A == 'b', "reset should change callback")
+    assert(url == '/path')
+
+    -- reset
+    parser:reset()
+    headers = headers2
+    parser:execute('' .. 'GET /path HTTP/1.1\r\n' .. 'A: b\r\n' .. '\r\n')
+
+    assert(url == '/path')
+    assert(headers1.A == headers2.A)
+    assert(headers1.A == 'b')
   end)
 
 
