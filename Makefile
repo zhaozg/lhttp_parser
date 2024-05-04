@@ -3,10 +3,12 @@ uname_S	 =$(shell uname -s)
 OBJS	 =lhttp_parser.o lhttp_parser_url.o http_parser.o url_parser.o lhttp_url.o
 
 ifeq (Darwin, $(uname_S))
-  CFLAGS=-Ihttp-parser -I/usr/local/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
-  LIBS=-lm -lpthread -lluajit-5.1 -L/usr/local/lib/
+  LJDIR ?= /usr/local/opt/luajit
+  CFLAGS=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
+  LIBS=-lm -lpthread -lluajit-5.1 -L${LJDIR}/lib/
 else
-  CFLAGS=-Ihttp-parser -I/usr/local/include/luajit-2.1 -I/usr/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
+  LJDIR ?= /usr/local
+  CFLAGS=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
   LIBS=-lm -lpthread -lrt
 endif
 
