@@ -1,37 +1,7 @@
-require("lib/tap")(function(test)
+describe('lhttp_parser basic unit testing', function()
+
   local lhp = require('lhttp_parser')
   local lurl = require('lhttp_url')
-  local p = require('lib/utils').prettyPrint
-
-  local function is_deeply(got, expect, msg, context)
-    if (type(expect) ~= "table") then
-      print("# Expected [" .. context .. "] to be a table")
-      assert(false, msg)
-      return false
-    end
-    for k, v in pairs(expect) do
-      local ctx
-      if (nil == context) then
-        ctx = k
-      else
-        ctx = context .. "." .. k
-      end
-      if type(expect[k]) == "table" then
-        if (not is_deeply(got[k], expect[k], msg, ctx)) then return false end
-      else
-        if (got[k] ~= expect[k]) then
-          print("# Expected [" .. ctx .. "] to be '" .. tostring(expect[k]) ..
-            "', but got '" .. tostring(got[k]) .. "'")
-          p('got', got)
-          p('expect', expect)
-          assert(false, msg)
-          return false
-        end
-      end
-    end
-    if (nil == context) then assert(true, msg); end
-    return true
-  end
 
   local function init_parser()
     local reqs = {}
@@ -42,6 +12,10 @@ require("lib/tap")(function(test)
     function cb.onMessageBegin()
       assert(cur == nil)
       cur = { headers = {} }
+    end
+
+    function cb.onReset()
+      cur = nil
     end
 
     function cb.onUrl(value)
@@ -93,7 +67,7 @@ require("lib/tap")(function(test)
     return parser, reqs
   end
 
-  test("lhttp_parser pipeline", function(p, p, expect, uv)
+  it("lhttp_parser pipeline", function()
     local pipeline = [[
 GET / HTTP/1.1
 Host: localhost
@@ -115,9 +89,18 @@ Connection: keep-alive
     local headers
     function cbs.onBody(chunk) if chunk then body = body .. chunk end end
 
-    function cbs.onMessageComplete() complete_count = complete_count + 1 end
+    function cbs.onMessageComplete()
+      complete_count = complete_count + 1
+    end
 
-    function cbs.onHeadersComplete(info) headers = info end
+    function cbs.onHeadersComplete(info)
+      headers = info
+    end
+
+    function cbs.onReset()
+      body = ''
+      headers = nil
+    end
 
     local parser = lhp.new('request', cbs)
     assert(parser:execute(pipeline) == #pipeline)
@@ -130,7 +113,7 @@ Connection: keep-alive
     assert(#body == 0)
   end)
 
-  test("lhttp_parser status_code", function(p, p, expect, uv)
+  it("lhttp_parser status_code", function()
     local response = { "HTTP/1.1 404 Not found", "", "" }
     local code, text
     local parser = lhp.new('response',
@@ -141,16 +124,19 @@ Connection: keep-alive
       'Expected status text: `Not found`, got `' .. tostring(text) .. '`')
   end)
 
-  test("lhttp_parser chunk_header", function(p, p, expect, uv)
+  it("lhttp_parser chunk_header", function()
     local response = { "HTTP/1.1 200 assert", "Transfer-Encoding: chunked", "", "" }
     local content_length
     local parser = lhp.new('response',
-      { onChunkHeader = function(a) content_length = a end })
+      {
+        onChunkHeader = function(a) content_length = a end,
+        onHeadersComplete = function() end
+      })
 
-    parser:execute(table.concat(response, '\r\n'))
+    assert(parser:execute(table.concat(response, '\r\n')))
 
     content_length = nil
-    parser:execute("23\r\n")
+    assert(parser:execute("23\r\n"))
     assert(content_length == 0x23,
       "first chunk Content-Length expected: 0x23, got " ..
       (content_length and string.format("0x%2X", content_length) or 'nil'))
@@ -170,7 +156,7 @@ Connection: keep-alive
       (content_length and string.format("%g", content_length) or 'nil'))
   end)
 
-  test("lhttp_parser reset", function(p, p, expect, uv)
+  it("lhttp_parser reset", function()
     local url
 
     local parser = lhp.new('request', { onUrl = function(u) url = u end })
@@ -187,7 +173,7 @@ Connection: keep-alive
     assert(url == '/path2', "reset should clear buffer and do not touch callbacks")
   end)
 
-  test("lhttp_parser reset callback", function(p, p, expect, uv)
+  it("lhttp_parser reset callback", function()
     local headers1, headers2, url, headers = {}, {}, nil, {}
 
     local parser = lhp.new('request', {
@@ -212,7 +198,7 @@ Connection: keep-alive
   end)
 
 
-  test("lhttp_parser continue", function(p, p, expect, uv)
+  it("lhttp_parser continue", function()
     -- NOTE: http-parser fails if the first response is HTTP 1.0:
     -- HTTP/1.0 100 Please continue mate.
     -- Which I think is a HTTP spec violation, but other HTTP clients, still work.
@@ -237,7 +223,12 @@ Connection: close
 
     function cbs.onMessageComplete() complete_count = complete_count + 1 end
 
-    function cbs.onHeadersComplete(info) headers = info end
+    function cbs.onHeadersComplete(info)
+      headers = info
+      if complete_count == 0 then
+        return 2
+      end
+    end
 
     local parser = lhp.new('response', cbs)
     local code, status = parser:execute(please_continue)
@@ -258,7 +249,7 @@ Connection: close
   end)
 
 
-  test("lhttp_parser connection close", function(p, p, expect, uv)
+  it("lhttp_parser connection close", function()
     local connection_close = [[
 HTTP/1.1 200 assert
 Date: Wed, 02 Feb 2011 00:50:50 GMT
@@ -286,7 +277,7 @@ Connection: close
     assert(#body == 10, "#body==10")
   end)
 
-  test("lhttp_parser nil body", function(p, p, expect, uv)
+  it("lhttp_parser nil body", function()
     local cbs = {}
     local body_count = 0
     local body = {}
@@ -294,18 +285,19 @@ Connection: close
       body[#body + 1] = chunk
       body_count = body_count + 1
     end
+    function cbs.onHeadersComplete() end
 
     local parser = lhp.new('request', cbs)
-    parser:execute("GET / HTTP/1.1\r\n")
-    parser:execute("Transfer-Encoding: chunked\r\n")
-    parser:execute("\r\n")
-    parser:execute("23\r\n")
-    parser:execute("This is the data in the first chunk\r\n")
-    parser:execute("1C\r\n")
-    parser:execute("X and this is the second one\r\n")
+    assert(parser:execute("GET / HTTP/1.1\r\n"))
+    assert(parser:execute("Transfer-Encoding: chunked\r\n"))
+    assert(parser:execute("\r\n"))
+    assert(parser:execute("23\r\n"))
+    assert(parser:execute("This is the data in the first chunk\r\n"))
+    assert(parser:execute("1C\r\n"))
+    assert(parser:execute("X and this is the second one\r\n"))
     assert(body_count == 2, "body_count == 2")
 
-    is_deeply(body, {
+    assert.same(body, {
       "This is the data in the first chunk", "X and this is the second one"
     })
 
@@ -350,7 +342,7 @@ Connection: close
       tostring(result) .. "]")
   end
 
-  test("lhttp_parser nil body cb", function(p, p, expect, uv)
+  it("lhttp_parser nil body cb", function()
     -- The goal of this test is to generate the most possible events
     local input_tbl = { "GET / HTTP/1.1\r\n", "Header: value\r\n", "\r\n" }
 
@@ -358,8 +350,9 @@ Connection: close
 
     local input = table.concat(input_tbl)
 
-    local result = parser:execute(input)
-    assert(result == #input, 'can work without on_body callback')
+    local result, status = parser:execute(input)
+    assert(result == nil)
+    assert(status == 'HPE_CB_HEADERS_COMPLETE')
   end)
 
   local expects = {}
@@ -418,7 +411,7 @@ Connection: close
   local parser, reqs = init_parser()
 
   for name, data in pairs(requests) do
-    test("lhttp_parser basic:" .. name, function(p, p, expect, uv)
+    it("lhttp_parser basic:" .. name, function()
       for _, line in ipairs(data) do
         local bytes_read = parser:execute(line)
         assert(bytes_read == #line,
@@ -429,7 +422,16 @@ Connection: close
       local got = reqs[#reqs]
       local expected = expects[name]
       assert(got.info.method == "GET", "Method is GET")
-      is_deeply(got, expected, "Check " .. name)
+      if type(expected.headers) == 'table' then
+        for i=1, #expected.headers do
+          local k = expected.headers[i]
+          assert(got.headers[k] == expected.headers[k])
+        end
+      end
+      if expected.body then
+        assert.same(expected.body, got.body)
+      end
     end)
   end
+
 end)

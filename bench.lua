@@ -4,8 +4,6 @@ local quiet = false
 local disable_gc = true
 local type = type
 local tconcat = table.concat
-local utils = require('lib/utils')
-local p = utils.prettyPrint
 
 if arg[1] == '-gc' then
   disable_gc = false
@@ -80,6 +78,7 @@ expects.ab = {
     Host = "localhost:8000",
     ["User-Agent"] = "ApacheBench/2.3",
     Accept = "*/*",
+    ['Content-Length'] = '5'
   },
   body = "body\n",
 }
@@ -94,7 +93,13 @@ requests.no_buff_body = {
 
 expects.no_buff_body = {
   method = "GET",
-  body = "chunk1chunk2"
+  body = "chunk1chunk2",
+  headers = {
+    ['Content-Length'] = '12',
+    Host = 'foo:80'
+  },
+  path = '/',
+  url = '/'
 }
 
 requests.httperf = {
@@ -126,6 +131,7 @@ expects.firefox = {
     ["Accept-Encoding"] = "gzip,deflate",
     ["Accept-Charset"] = "ISO-8859-1,utf-8;q=0.7,*;q=0.7",
     ["Keep-Alive"] = "300",
+    Host = 'two.local:8000',
     Connection = "keep-alive",
   }
 }
@@ -198,23 +204,6 @@ local function init_null_parser()
   return lhp.new('request', null_cbs)
 end
 
-local function assert_deeply(got, expect, context)
-  assert(type(expect) == "table", "Expected [" .. context .. "] to be a table")
-  for k, v in pairs(expect) do
-    local ctx = context .. "." .. k
-    if type(expect[k]) == "table" then
-      assert_deeply(got[k], expect[k], ctx)
-    else
-      if (got[k] ~= expect[k]) then
-        p(got)
-        p(expect)
-      end
-      assert(got[k] == expect[k],
-        "Expected [" .. ctx .. "] to be '" .. tostring(expect[k]) .. "', but got '" .. tostring(got[k]) .. "'")
-    end
-  end
-end
-
 local function good_client(parser, data)
   for i = 1, #data do
     local line = data[i]
@@ -249,13 +238,17 @@ local function apply_client_memtest(name, client, N)
   print(name, 'N=', N, 'total memory used: ', (end_mem - start_mem))
   print()
 
+  assert = require('luassert')
   -- validate parsed request data.
   local idx = 0
   for name, data in pairs(requests) do
     idx          = idx + 1
     local got    = reqs[idx]
+    for i=#got.headers, 1, -1 do
+      got.headers[i] = nil
+    end
     local expect = expects[name]
-    assert_deeply(got, expect, name)
+    assert.same(got, expect, name)
   end
 
   reqs = nil

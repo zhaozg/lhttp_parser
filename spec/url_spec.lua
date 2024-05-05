@@ -1,4 +1,4 @@
-require("lib/tap")(function(test)
+describe('lhttp_url', function()
   local URL = require('lhttp_url')
 
   local function is_deeply(got, expect, msg, context)
@@ -52,7 +52,7 @@ require("lib/tap")(function(test)
   }
 
   for _, tast_case in ipairs(tast_cases) do
-    test("lhttp_parser url parse:#" .. tast_case[1], function(p, p, expect, uv)
+    it("lhttp_parser url parse:#" .. tast_case[1], function()
       local url, is_connect, expect = tast_case[1], tast_case[2], tast_case[3]
       local result = URL.parse(url, is_connect)
       is_deeply(result, expect, 'Url: ' .. url)

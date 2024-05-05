@@ -4,13 +4,14 @@ OBJS	 =lhttp_parser.o lhttp_parser_url.o http_parser.o url_parser.o lhttp_url.o
 
 ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
-  CFLAGS=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
   LIBS=-lm -lpthread -lluajit-5.1 -L${LJDIR}/lib/
 else
   LJDIR ?= /usr/local
-  CFLAGS=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -Werror -fPIC
   LIBS=-lm -lpthread -lrt
 endif
+
+CFLAGS	?= -g
+CFLAGS  +=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -Wall -Werror -fPIC
 
 TARGET  = $(MAKECMDGOALS)
 # asan {{{
@@ -72,7 +73,7 @@ lhttp_url.so: ${OBJS}
 	$(CC) ${CFLAGS} ${SHARED_LIB_FLAGS} $@ ${OBJS} ${LIBS}
 
 test: all
-	luajit tests/run.lua
+	busted
 	luajit bench.lua
 
 asan: all
@@ -80,13 +81,13 @@ ifeq (Darwin, $(uname_S))
 	ASAN_LIB=$(ASAN_LIB) \
 	LSAN_OPTIONS=suppressions=${shell pwd}/.github/asan.supp \
 	DYLD_INSERT_LIBRARIES=$(ASAN_LIB) \
-	luajit tests/run.lua
+	luajit tests/test-basic.lua
 endif
 ifeq (Linux, $(uname_S))
 	ASAN_LIB=$(ASAN_LIB) \
 	LSAN_OPTIONS=suppressions=${shell pwd}/.github/asan.supp \
 	LD_PRELOAD=$(ASAN_LIB) \
-	luajit tests/run.lua
+	luajit tests/test-basic.lua
 endif
 
 clean:

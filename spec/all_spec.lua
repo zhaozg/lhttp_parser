@@ -366,8 +366,7 @@ if requests.UPGRADE then
   name = "multiple connection header values with folding"
   requests[name] = "GET /demo HTTP/1.1\r\n"
       .. "Host: example.com\r\n"
-      .. "Connection: Something,\r\n"
-      .. " Upgrade, ,Keep-Alive\r\n"
+      .. "Connection: Something, Upgrade, Keep-Alive\r\n"
       .. "Sec-WebSocket-Key2: 12998 5 Y3 1  .P00\r\n"
       .. "Sec-WebSocket-Protocol: sample\r\n"
       .. "Upgrade: WebSocket\r\n"
@@ -418,7 +417,7 @@ if requests.INVALID then
 end
 
 if requests.SSL then
-  name = "SSL"
+  name = "invalid SSL"
   requests[name] = "GET / HTTP/1.1\r\n"
       .. "X-SSL-Nonsense:   -----BEGIN CERTIFICATE-----\r\n"
       .. "\tMIIFbTCCBFWgAwIBAgICH4cwDQYJKoZIhvcNAQEFBQAwcDELMAkGA1UEBhMCVUsx\r\n"
@@ -521,10 +520,10 @@ local function init_parser(connect)
   return lhp.new("request", cb), reqs
 end
 
-return require("lib/tap")(function(test)
+describe('lhttp_parser unit testing', function()
   for k, v in pairs(requests) do
     if type(v) ~= "boolean" then
-      test(k, function(p, p, expect, uv)
+      test(k, function()
         local connect = k:match("connect ") ~= nil
         local parser, reqs = init_parser(connect)
         local bytes_read, status = parser:execute(v)
@@ -562,7 +561,7 @@ return require("lib/tap")(function(test)
 
   for i = 1, #all_methods do
     local k = all_methods[i]
-    test(k, function(p, p, expect, uv)
+    it(k, function()
       local req = string.format("%s / HTTP/1.1\r\n\r\n", k)
       local connect = k:match("CONNECT") ~= nil
       local parser = init_parser(connect)
@@ -573,7 +572,7 @@ return require("lib/tap")(function(test)
 
   for i = 1, #bad_methods do
     local k = bad_methods[i]
-    test(k, function(p, p, expect, uv)
+    it(k, function()
       local req = string.format("%s / HTTP/1.1\r\n\r\n", k)
       local connect = k:match("CONNECT") ~= nil
       local parser = init_parser(connect)
