@@ -1,9 +1,10 @@
 CompileFlags:
-  Add: [
-    -Wall,
-    -I/usr/local/opt/luajit/include,
-    -Illhttp/include,
-    -I.,
-  ]
+  CompilationDatabase: build/
+  Add:
+  - -I/usr/local/include
+  - -I/usr/local/opt/luajit/include/luajit-2.1
+  - -Illhttp/include
+  - -I.
+  - -Wall
   Compiler: clang
 
