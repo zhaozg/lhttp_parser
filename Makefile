@@ -1,6 +1,5 @@
-HPARSER	?= llhttp
 uname_S	 =$(shell uname -s)
-OBJS	 =lhttp_parser.o llhttp_url.o lhttp_url.o
+OBJS	 =lhttp_parser.o llhttp_url.o lhttp_url.o api.o llhttp.o http.o
 
 ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
@@ -11,7 +10,7 @@ else
 endif
 
 CFLAGS	?= -g
-CFLAGS  +=-Ihttp-parser -I${LJDIR}/include/luajit-2.1 -Wall -Werror -fPIC
+CFLAGS  +=-Ihttp-parser -Illhttp/include -I${LJDIR}/include/luajit-2.1 -Wall -Werror -fPIC
 
 TARGET  = $(MAKECMDGOALS)
 # asan {{{
@@ -35,10 +34,6 @@ endif
 
 
 SHARED_LIB_FLAGS=-shared -o
-ifeq (llhttp, $(HPARSER))
-  CFLAGS+=-DUSE_LLHTTP -Illhttp/include
-  OBJS+=api.o llhttp.o http.o
-endif
 
 all: lhttp_parser.so lhttp_url.so
 
