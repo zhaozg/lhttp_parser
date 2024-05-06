@@ -18,6 +18,7 @@ extern "C" {
 #include <locale.h>
 #include <stdint.h>
 #include <assert.h>
+#include "llhttp_url.h"
 
 #define UTF8_LEAD(c) ((uint8_t)(c) < 0x80 || ((uint8_t)(c) > 0xC1 && (uint8_t)(c) < 0xF5))
 #define UTF8_TRAIL(c) (((uint8_t)(c) & 0xC0) == 0x80)
@@ -298,8 +299,6 @@ uint8_t utf8_len(const char* str)
   return size;
 }
 
-int lhttp_parser_parse_url (lua_State *L);
-
 #if LUA_VERSION_NUM < 502
 /* lua_rawlen: Not entirely correct, but should work anyway */
 # ifndef lua_rawlen
@@ -319,6 +318,50 @@ int lhttp_parser_parse_url (lua_State *L);
 #	define luaL_setfuncs(L,l,n) (assert(n==0), luaL_register(L,NULL,l))
 # endif
 #endif
+
+static int lhttp_parser_parse_url (lua_State *L) {
+  size_t len;
+  const char *url = luaL_checklstring(L, 1, &len);
+  int is_connect = lua_toboolean(L, 2);
+
+  struct http_parser_url u;
+  if (http_parser_parse_url(url, len, is_connect, &u)) {
+    return 0;
+  }
+
+  lua_newtable(L);
+  if (u.field_set & (1 << UF_SCHEMA)) {
+    lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);
+    lua_setfield(L, -2, "schema");
+  }
+  if (u.field_set & (1 << UF_HOST)) {
+    lua_pushlstring(L, url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
+    lua_setfield(L, -2, "host");
+  }
+  if (u.field_set & (1 << UF_PORT)) {
+    lua_pushlstring(L, url + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len);
+    lua_setfield(L, -2, "port_string");
+    lua_pushnumber(L, u.port);
+    lua_setfield(L, -2, "port");
+  }
+  if (u.field_set & (1 << UF_PATH)) {
+    lua_pushlstring(L, url + u.field_data[UF_PATH].off, u.field_data[UF_PATH].len);
+    lua_setfield(L, -2, "path");
+  }
+  if (u.field_set & (1 << UF_QUERY)) {
+    lua_pushlstring(L, url + u.field_data[UF_QUERY].off, u.field_data[UF_QUERY].len);
+    lua_setfield(L, -2, "query");
+  }
+  if (u.field_set & (1 << UF_FRAGMENT)) {
+    lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
+    lua_setfield(L, -2, "fragment");
+  }
+  if (u.field_set & (1 << UF_USERINFO)) {
+    lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
+    lua_setfield(L, -2, "userinfo");
+  }
+  return 1;
+}
 
 LUALIB_API int luaopen_lhttp_url (lua_State *L)
 {

@@ -1,6 +1,6 @@
 HPARSER	?= llhttp
 uname_S	 =$(shell uname -s)
-OBJS	 =lhttp_parser.o lhttp_parser_url.o http_parser.o url_parser.o lhttp_url.o
+OBJS	 =lhttp_parser.o llhttp_url.o lhttp_url.o
 
 ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
@@ -42,12 +42,6 @@ endif
 
 all: lhttp_parser.so lhttp_url.so
 
-http_parser.o: http-parser/http_parser.c
-	$(CC) -c $< -o $@ ${CFLAGS}
-
-url_parser.o: http-parser/contrib/url_parser.c
-	$(CC) -c $< -o $@ ${CFLAGS}
-
 http.o: llhttp/src/http.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
@@ -63,7 +57,7 @@ lhttp_parser.o: lhttp_parser.c
 lhttp_url.o: lhttp_url.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
-lhttp_parser_url.o: lhttp_parser_url.c
+llhttp_url.o: llhttp_url.c
 	$(CC) -c $< -o $@ ${CFLAGS}
 
 lhttp_parser.so: ${OBJS}
