@@ -48,16 +48,11 @@ static const int url_unreserved[256] =
 
 static char* _encode_url(const char* input)
 {
-  if (input[0] == '\0')
-  {
-    return "";
-  }
-
   const long len = strlen((const char*)input);
   char* encoded = malloc(sizeof(uint8_t) * len * 3 + 1);
-
   int in_cursor = 0;
   int out_cursor = 0;
+
   while (input[in_cursor] != '\0')
   {
     const uint8_t charlen = utf8_len(&input[in_cursor]);
@@ -105,7 +100,12 @@ static char* _encode_url(const char* input)
 static int encode_url (lua_State* L)
 {
   const char* input = luaL_checkstring(L, 1);
-  char* encoded = _encode_url(input);
+  char* encoded;
+
+  if (input[0] == '\0')
+    return 1;
+
+  encoded = _encode_url(input);
   lua_pushstring(L, encoded);
   free(encoded);
   return 1;
