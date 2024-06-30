@@ -328,25 +328,43 @@ static int lhttp_parser_parse_url (lua_State *L) {
   if (http_parser_parse_url(url, len, is_connect, &u)) {
     return 0;
   }
+  /*
+┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                              href                                              │
+├──────────┬──┬─────────────────────┬────────────────────────┬───────────────────────────┬───────┤
+│ protocol │  │        auth         │          host          │           path            │ hash  │
+│          │  │                     ├─────────────────┬──────┼──────────┬────────────────┤       │
+│          │  │                     │    hostname     │ port │ pathname │     search     │       │
+│          │  │                     │                 │      │          ├─┬──────────────┤       │
+│          │  │                     │                 │      │          │ │    query     │       │
+"  https:   //    user   :   pass   @ sub.example.com : 8080   /p/a/t/h  ?  query=string   #hash "
+│          │  │          │          │    hostname     │ port │          │                │       │
+│          │  │          │          ├─────────────────┴──────┤          │                │       │
+│ protocol │  │ username │ password │          host          │          │                │       │
+├──────────┴──┼──────────┴──────────┼────────────────────────┤          │                │       │
+│   origin    │                     │         origin         │ pathname │     search     │ hash  │
+├─────────────┴─────────────────────┴────────────────────────┴──────────┴────────────────┴───────┤
+│                                              href                                              │
+└────────────────────────────────────────────────────────────────────────────────────────────────┘
+(All spaces in the "" line should be ignored. They are purely for formatting.)
+  */
 
   lua_newtable(L);
   if (u.field_set & (1 << UF_SCHEMA)) {
     lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);
-    lua_setfield(L, -2, "schema");
+    lua_setfield(L, -2, "protocol");
   }
   if (u.field_set & (1 << UF_HOST)) {
     lua_pushlstring(L, url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
-    lua_setfield(L, -2, "host");
+    lua_setfield(L, -2, "hostname");
   }
   if (u.field_set & (1 << UF_PORT)) {
     lua_pushlstring(L, url + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len);
-    lua_setfield(L, -2, "port_string");
-    lua_pushnumber(L, u.port);
     lua_setfield(L, -2, "port");
   }
   if (u.field_set & (1 << UF_PATH)) {
     lua_pushlstring(L, url + u.field_data[UF_PATH].off, u.field_data[UF_PATH].len);
-    lua_setfield(L, -2, "path");
+    lua_setfield(L, -2, "pathname");
   }
   if (u.field_set & (1 << UF_QUERY)) {
     lua_pushlstring(L, url + u.field_data[UF_QUERY].off, u.field_data[UF_QUERY].len);
@@ -354,11 +372,11 @@ static int lhttp_parser_parse_url (lua_State *L) {
   }
   if (u.field_set & (1 << UF_FRAGMENT)) {
     lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
-    lua_setfield(L, -2, "fragment");
+    lua_setfield(L, -2, "hash");
   }
   if (u.field_set & (1 << UF_USERINFO)) {
     lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
-    lua_setfield(L, -2, "userinfo");
+    lua_setfield(L, -2, "auth");
   }
   return 1;
 }
