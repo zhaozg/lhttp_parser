@@ -136,3 +136,36 @@ Returns errno(number), error name(string), error description(string).
 #### `parser:reinitialize('request|response', tables)`
 Re-initialize HTTP parser clearing any previous error/state.
 
+## Documentation
+
+Detailed API documentation is available in LDoc format. To generate the documentation:
+
+```shell
+# Install LDoc if not already installed
+luarocks install ldoc
+
+# Generate documentation
+ldoc .
+```
+
+The documentation will be generated in the `doc/` directory.
+
+## Quality Improvements
+
+This library has been improved with:
+
+1. **Enhanced Memory Management**: 
+   - Proper cleanup of Lua registry references in the garbage collector
+   - Safe handling of Lua state pointers to prevent use-after-free issues
+   - Protection against invalid reference cleanup
+
+2. **Improved Error Handling**:
+   - Added safety checks for NULL Lua state pointers in callbacks
+   - Consistent error reporting across all parser methods
+   - Better error propagation with detailed error reasons
+
+3. **Comprehensive Documentation**:
+   - Full LDoc API documentation for all functions and callbacks
+   - Detailed usage examples for common scenarios
+   - Complete callback reference with parameter descriptions
+

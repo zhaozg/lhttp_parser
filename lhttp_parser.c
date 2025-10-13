@@ -49,6 +49,11 @@ static int lhttp_parser_pcall_callback(http_parser *p,
   lua_State *L = ctx->L;
   int top;
 
+  /* Safety check: ensure L is valid */
+  if (L == NULL) {
+    return HPE_INTERNAL;
+  }
+
   /* Put the environment of the userdata on the top of the stack */
   lua_rawgeti(L, LUA_REGISTRYINDEX, ctx->ref);
   top = lua_gettop(L);
@@ -334,6 +339,7 @@ static int lhttp_parser_execute(lua_State *L) {
     err = llhttp_execute(parser, chunk, length);
     if (err != HPE_OK && err != HPE_PAUSED && err != HPE_PAUSED_UPGRADE &&
         err != HPE_STRICT) {
+      ctx->L = NULL;  /* Reset L after execution */
       lua_pushnil(L);
       lua_pushstring(L, llhttp_errno_name(err));
       return 2;
@@ -348,6 +354,7 @@ static int lhttp_parser_execute(lua_State *L) {
   } else
     nparsed = 0;
 
+  ctx->L = NULL;  /* Reset L after execution */
   lua_pushnumber(L, nparsed);
   lua_pushstring(L, llhttp_errno_name(err));
   return 2;
@@ -355,9 +362,13 @@ static int lhttp_parser_execute(lua_State *L) {
 
 static int lhttp_parser_finish(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
+  parser_ctx *ctx = parser->data;
   size_t nparsed;
 
+  ctx->L = L;
   llhttp_errno_t err = llhttp_finish(parser);
+  ctx->L = NULL;
+  
   if (err != HPE_OK && err != HPE_PAUSED) {
     lua_pushnil(L);
     lua_pushstring(L, llhttp_errno_name(err));
@@ -449,7 +460,13 @@ static int lhttp_parser_tostring(lua_State *L) {
 static int lhttp_parser_gc(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
   parser_ctx *ctx = parser->data;
-  luaL_unref(L, LUA_REGISTRYINDEX, ctx->ref);
+  
+  /* Only unref if ref is valid */
+  if (ctx && ctx->ref != LUA_NOREF && ctx->ref != LUA_REFNIL) {
+    luaL_unref(L, LUA_REGISTRYINDEX, ctx->ref);
+    ctx->ref = LUA_NOREF;
+  }
+  
   return 0;
 }
 
