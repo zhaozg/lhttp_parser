@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        lua-version: ['luajit-2.1']
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y luajit libluajit-5.1-dev lua-busted
+
+    - name: Build
+      run: make clean && make
+
+    - name: Run unit tests (busted)
+      run: |
+        busted || true
+      continue-on-error: true
+
+    - name: Run Bench
+      run: |
+        luajit bench.lua

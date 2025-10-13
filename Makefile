@@ -5,8 +5,8 @@ ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
   LIBS=-lm -lpthread -lluajit-5.1 -L${LJDIR}/lib/
 else
-  LJDIR ?= /usr/local
-  LIBS=-lm -lpthread -lrt
+  LJDIR ?= /usr
+  LIBS=-lm -lpthread -lrt -lluajit-5.1
 endif
 
 CFLAGS	?= -g
@@ -36,6 +36,9 @@ endif
 SHARED_LIB_FLAGS=-shared -o
 
 all: lhttp_parser.so lhttp_url.so
+
+doc:
+	ldoc -f markdown lhttp_parser.c lhttp_url.c
 
 http.o: llhttp/src/http.c
 	$(CC) -c $< -o $@ ${CFLAGS}

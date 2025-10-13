@@ -1,5 +1,11 @@
-/* come from https://github.com/moznion/lua-url-encode */
-/* but fix memory leaks */
+/***
+ * URL utilities for Lua
+ *
+ * This module provides URL encoding, decoding, and parsing functions.
+ * Based on https://github.com/moznion/lua-url-encode with memory leak fixes.
+ *
+ * @module lhttp_url
+ */
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,6 +103,20 @@ static char* _encode_url(const char* input)
   return encoded;
 }
 
+/***
+ * Encode a string for use in URLs
+ *
+ * Encodes special characters in a string to make it safe for use in URLs.
+ * Spaces are encoded as '+' and other special characters are percent-encoded.
+ *
+ * @function encode
+ * @tparam string str String to encode
+ * @treturn string URL-encoded string
+ * @usage
+ * local lurl = require('lhttp_url')
+ * local encoded = lurl.encode("hello world!")
+ * -- Returns: "hello+world%21"
+ */
 static int encode_url (lua_State* L)
 {
   const char* input = luaL_checkstring(L, 1);
@@ -198,6 +218,20 @@ static char* _decode_url(const char* input)
   return decoded;
 }
 
+/***
+ * Decode a URL-encoded string
+ *
+ * Decodes a URL-encoded string back to its original form.
+ * Handles both '+' (as space) and percent-encoded characters.
+ *
+ * @function decode
+ * @tparam string str URL-encoded string to decode
+ * @treturn string Decoded string
+ * @usage
+ * local lurl = require('lhttp_url')
+ * local decoded = lurl.decode("hello+world%21")
+ * -- Returns: "hello world!"
+ */
 static int decode_url (lua_State* L)
 {
   const char* input = luaL_checkstring(L, 1);
@@ -319,6 +353,21 @@ uint8_t utf8_len(const char* str)
 # endif
 #endif
 
+/***
+ * Parse a URL into components
+ *
+ * Parses a URL string and returns a table with its components.
+ *
+ * @function parse
+ * @tparam string url URL to parse
+ * @tparam[opt=false] boolean is_connect Whether this is a CONNECT request URL
+ * @treturn[1] table URL components table with fields: protocol, auth, host, hostname, port, pathname, query, hash
+ * @treturn[2] nil If parsing failed
+ * @usage
+ * local lurl = require('lhttp_url')
+ * local url = lurl.parse("******example.com:8080/path?query=value#hash")
+ * -- Returns a table with all URL components
+ */
 static int lhttp_parser_parse_url (lua_State *L) {
   size_t len;
   const char *url = luaL_checklstring(L, 1, &len);

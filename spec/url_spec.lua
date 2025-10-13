@@ -33,6 +33,13 @@ describe('lhttp_url', function()
     return true
   end
 
+  it("lhttp_parser URL parsing basic", function()
+    local url = URL.parse("https://user:pass@example.com:8080/path?query=value#hash")
+    assert(url ~= nil, "Should parse URL successfully")
+    assert(url.schema == "https", "Protocol should be https")
+    assert(url.port == 8080, "Port should be 8080")
+  end)
+
   local tast_cases = {
     {
       "http://hello.com:8080/some/path?with=1%23&args=value", false, {
@@ -58,4 +65,21 @@ describe('lhttp_url', function()
       is_deeply(result, expect, 'Url: ' .. url)
     end)
   end
+
+  it("lhttp_parser URL encoding and decoding", function()
+    local original = "hello world & special chars: @#$%"
+    local encoded = URL.encode(original)
+    local decoded = URL.decode(encoded)
+    assert(decoded == original, "Decoded should match original")
+  end)
+
+  it("lhttp_parser URL parsing edge cases", function()
+    -- Test with no path
+    local url1 = URL.parse("http://example.com")
+    assert(url1 ~= nil, "Should parse URL without path")
+
+    -- Test with IPv6
+    local url2 = URL.parse("http://[::1]:8080/path")
+    assert(url2 ~= nil, "Should parse IPv6 URL")
+  end)
 end)

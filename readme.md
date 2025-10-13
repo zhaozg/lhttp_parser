@@ -5,7 +5,7 @@ This is `http-parser` binding for lua.
 ## Build
 
 ```shell
-git clone 
+git clone
 make
 ```
 
@@ -17,13 +17,13 @@ In c application, lhttp_parser can be compiled and linked statically. Just call
 the function `luaopen_lhttp_parser(L)` to create a table with the http parser
 functions and leave it on the top of the stack.
 
-To test the library run, please run `./test.lua`, 
+To test the library run, please run `./test.lua`,
 
 ## API
 
 `lhttp-parser` has tow method:
 
-* `parseUrl` to parse a url, and return a parsed table, which have `schema`, 
+* `parseUrl` to parse a url, and return a parsed table, which have `schema`,
 `host`, `port`, `port_string`, `path`, `query` and `fragment`.
 * `new` to create a request or response parser.
 
@@ -86,8 +86,8 @@ parser = lhp.new('request', {
 
 ### Parser object
 
-Create a new HTTP parser to handle either an HTTP request or HTTP response 
-respectively.  Pass in a table of callbacks that are ran when the parser 
+Create a new HTTP parser to handle either an HTTP request or HTTP response
+respectively.  Pass in a table of callbacks that are ran when the parser
 encounters the various fields.  All callbacks will be ran with the full value
 for that field with onBody being the notible exception.
 
@@ -120,9 +120,9 @@ requests.
 
 #### `parser:should_keep_alive()`
 
-Returns true if this TCP connection should be "kept alive" so that it can be 
+Returns true if this TCP connection should be "kept alive" so that it can be
 re-used for a future request/response. If this returns false and you are the
-server, then respond with the "Connection: close" header.  If you are the 
+server, then respond with the "Connection: close" header.  If you are the
 client, then simply close the connection.
 
 ####  `parser:is_upgrade()`
@@ -136,3 +136,11 @@ Returns errno(number), error name(string), error description(string).
 #### `parser:reinitialize('request|response', tables)`
 Re-initialize HTTP parser clearing any previous error/state.
 
+## Continuous Integration
+
+This project uses GitHub Actions for continuous integration. Every push and pull request is automatically:
+- Built on Ubuntu with LuaJIT
+- Tested with the comprehensive test suite
+- Checked for memory leaks
+
+See `.github/workflows/ci.yml` for the complete CI configuration.

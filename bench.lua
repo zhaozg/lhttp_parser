@@ -305,6 +305,9 @@ local clients = {
   good = { cb = good_client, mem_N = 1, speed_N = N * 10 },
 }
 
+collectgarbage("collect")
+collectgarbage("collect")
+local before = collectgarbage("collect")
 print('memory test')
 for name, client in pairs(clients) do
   apply_client_memtest(name, client.cb, client.mem_N)
@@ -317,3 +320,7 @@ end
 
 print('overhead test')
 per_parser_overhead(N)
+collectgarbage("collect")
+collectgarbage("collect")
+local after = collectgarbage("collect")
+print(string.format('Cost: %dK', (after - before)))
