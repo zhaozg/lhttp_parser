@@ -6,11 +6,11 @@ ifeq (Darwin, $(uname_S))
   LIBS=-lm -lpthread -lluajit-5.1 -L${LJDIR}/lib/
 else
   LJDIR ?= /usr/local
-  LIBS=-lm -lpthread -lrt
+  LIBS=-lm -lpthread -lrt -lluajit-5.1
 endif
 
 CFLAGS	?= -g
-CFLAGS  +=-Ihttp-parser -Illhttp/include -I${LJDIR}/include/luajit-2.1 -Wall -Werror -fPIC
+CFLAGS  +=-Ihttp-parser -Illhttp/include -I${LJDIR}/include/luajit-2.1 -I/usr/include/luajit-2.1 -Wall -Werror -fPIC
 
 TARGET  = $(MAKECMDGOALS)
 # asan {{{
