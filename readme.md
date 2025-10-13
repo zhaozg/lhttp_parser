@@ -138,17 +138,26 @@ Re-initialize HTTP parser clearing any previous error/state.
 
 ## Documentation
 
-Detailed API documentation is available in LDoc format. To generate the documentation:
+API documentation is embedded in the C source files using LDoc format. The documentation includes detailed descriptions of all functions, parameters, return values, and usage examples.
+
+To generate HTML documentation:
 
 ```shell
 # Install LDoc if not already installed
 luarocks install ldoc
 
-# Generate documentation
-ldoc .
+# Generate documentation from C source files
+ldoc -f markdown lhttp_parser.c lhttp_url.c
 ```
 
-The documentation will be generated in the `doc/` directory.
+## Continuous Integration
+
+This project uses GitHub Actions for continuous integration. Every push and pull request is automatically:
+- Built on Ubuntu with LuaJIT
+- Tested with the comprehensive test suite
+- Checked for memory leaks
+
+See `.github/workflows/ci.yml` for the complete CI configuration.
 
 ## Quality Improvements
 
@@ -165,7 +174,12 @@ This library has been improved with:
    - Better error propagation with detailed error reasons
 
 3. **Comprehensive Documentation**:
-   - Full LDoc API documentation for all functions and callbacks
+   - LDoc-style documentation embedded directly in C source files
    - Detailed usage examples for common scenarios
-   - Complete callback reference with parameter descriptions
+   - Complete API reference with parameter descriptions
+
+4. **Continuous Integration**:
+   - GitHub Actions workflow for automated testing
+   - Build verification on every commit
+   - Memory leak detection in CI pipeline
 

@@ -73,23 +73,19 @@ Leaked: -7.54 KB  ← NEGATIVE means memory was actually freed!
 
 ### 3. LDoc Documentation
 
-#### Documentation Created:
+#### Documentation Approach:
 
-1. **lhttp_parser_doc.lua** - Comprehensive API documentation including:
-   - All error codes with descriptions
-   - Version information
-   - Parser creation and methods
-   - All callback functions with parameters
-   - Usage examples for each function
+LDoc-style documentation is now embedded directly in the C source files (lhttp_parser.c and lhttp_url.c) following best practices:
 
-2. **lhttp_url_doc.lua** - URL utilities documentation including:
-   - URL encoding/decoding functions
-   - URL parsing with component descriptions
-   - Examples for each function
+1. **Module-level documentation** at the top of each file
+2. **Function-level documentation** before each exported function
+3. **Complete parameter descriptions** using @tparam and @treturn
+4. **Usage examples** embedded in documentation blocks
 
-3. **config.ld** - LDoc configuration for documentation generation
+#### Key Documentation Blocks:
 
-4. **README.md updates** - Added quality improvements section
+- **lhttp_parser.c**: Documents new(), execute(), finish(), reset() and other parser methods
+- **lhttp_url.c**: Documents encode(), decode(), and parse() functions
 
 #### Generating Documentation:
 
@@ -97,12 +93,18 @@ Leaked: -7.54 KB  ← NEGATIVE means memory was actually freed!
 # Install LDoc
 luarocks install ldoc
 
-# Generate documentation
-ldoc .
-
-# View documentation
-open doc/index.html
+# Generate documentation from C source files
+ldoc -f markdown lhttp_parser.c lhttp_url.c
 ```
+
+### 4. GitHub CI Action
+
+Created `.github/workflows/ci.yml` for continuous integration:
+
+- **Automated builds** on every push and pull request
+- **Test execution** including unit tests and memory leak detection
+- **Multi-iteration memory testing** to verify no gradual memory growth
+- **Ubuntu/LuaJIT environment** matching common deployment scenarios
 
 ## Code Quality Metrics
 
@@ -113,13 +115,23 @@ open doc/index.html
 - Tests: ~115 lines
 
 ### Test Coverage:
+
+**15 comprehensive tests** covering:
 - ✅ Basic parsing functionality
 - ✅ Error handling and recovery
 - ✅ Memory management (1000 parser lifecycle test)
 - ✅ Parser reuse with reset()
 - ✅ URL encoding/decoding
-- ✅ URL parsing
+- ✅ URL parsing with edge cases
 - ✅ Chunked transfer encoding
+- ✅ Malformed headers handling
+- ✅ Incomplete request handling
+- ✅ Oversized headers handling
+- ✅ Multiple simultaneous parsers
+- ✅ Response parser functionality
+- ✅ Error code verification
+- ✅ API method availability
+- ✅ URL parsing edge cases (IPv6, no path, etc.)
 
 ### Build Configuration:
 - ✅ Fixed for CI environments

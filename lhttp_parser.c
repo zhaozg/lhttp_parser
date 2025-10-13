@@ -15,6 +15,19 @@
  *
  */
 
+/***
+ * HTTP Parser for Lua
+ * 
+ * This module provides Lua bindings for llhttp, a fast HTTP parser library.
+ * It supports parsing both HTTP requests and responses with callbacks for
+ * different parsing events.
+ *
+ * @module lhttp_parser
+ * @author zhaozg
+ * @license Apache License 2.0
+ * @copyright 2012 The Luvit Authors
+ */
+
 #include "lhttp_parser.h"
 #include "llhttp.h"
 #include <stdlib.h>
@@ -234,7 +247,28 @@ static int lhttp_parser_on_reset(http_parser *p) {
 
 /******************************************************************************/
 
-/* Takes as arguments a string for type and a table for event callbacks */
+/***
+ * Create a new HTTP parser
+ * 
+ * Creates a new parser instance for parsing HTTP requests or responses.
+ * The parser uses callbacks to notify about parsing events.
+ *
+ * @function new
+ * @tparam string parser_type Type of parser: 'request', 'response', or 'both'
+ * @tparam table callbacks Table containing callback functions
+ * @treturn userdata New parser object
+ * @usage
+ * local lhp = require('lhttp_parser')
+ * local parser = lhp.new('request', {
+ *   onMessageBegin = function() end,
+ *   onUrl = function(url) end,
+ *   onHeaderField = function(field) end,
+ *   onHeaderValue = function(value) end,
+ *   onHeadersComplete = function(info) end,
+ *   onBody = function(chunk) end,
+ *   onMessageComplete = function() end
+ * })
+ */
 static int lhttp_parser_new(lua_State *L) {
   int itype;
   const char *type = luaL_optstring(L, 1, "both");
@@ -310,7 +344,24 @@ static size_t getendpos(lua_State *L, int arg, lua_Integer def, size_t len) {
     return len + (size_t)pos + 1;
 }
 
-/* execute(parser, buffer, offset, length) */
+/***
+ * Execute the parser on input data
+ * 
+ * Feeds data to the parser for parsing. The parser will invoke callbacks
+ * as it encounters different parts of the HTTP message.
+ *
+ * @function parser:execute
+ * @tparam string data Input data to parse
+ * @tparam[opt=1] number i Starting position (1-based index)
+ * @tparam[opt=-1] number j Ending position (negative values count from end)
+ * @treturn number Number of bytes parsed
+ * @treturn string Error code name (e.g., "HPE_OK")
+ * @usage
+ * local nparsed, err = parser:execute(data)
+ * if err ~= "HPE_OK" then
+ *   print("Parse error:", err)
+ * end
+ */
 static int lhttp_parser_execute(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
   parser_ctx *ctx = parser->data;
@@ -360,6 +411,22 @@ static int lhttp_parser_execute(lua_State *L) {
   return 2;
 }
 
+/***
+ * Finish parsing
+ * 
+ * Signals the end of input to the parser. This should be called after
+ * all data has been fed to the parser.
+ *
+ * @function parser:finish
+ * @treturn[1] number 0 on success
+ * @treturn[2] nil On error
+ * @treturn[2] string Error code name
+ * @usage
+ * local result, err = parser:finish()
+ * if not result then
+ *   print("Finish error:", err)
+ * end
+ */
 static int lhttp_parser_finish(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
   parser_ctx *ctx = parser->data;
@@ -379,6 +446,14 @@ static int lhttp_parser_finish(lua_State *L) {
   return 1;
 }
 
+/***
+ * Reset the parser
+ * 
+ * Resets the parser state so it can be reused for parsing a new message.
+ *
+ * @function parser:reset
+ * @usage parser:reset()
+ */
 static int lhttp_parser_reset(lua_State *L) {
   http_parser *parser = (http_parser *)luaL_checkudata(L, 1, "lhttp_parser");
 
