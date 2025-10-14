@@ -5,6 +5,8 @@ local disable_gc = true
 local type = type
 local tconcat = table.concat
 
+local URL = require('lhttp_url')
+
 if arg[1] == '-gc' then
   disable_gc = false
   table.remove(arg, 1)
@@ -44,22 +46,6 @@ end
 
 local lhp = require 'lhttp_parser'
 
-local function parse_path_query_fragment(uri)
-  local path, query, fragment, off
-  -- parse path
-  path, off = uri:match('([^?]*)()')
-  -- parse query
-  if uri:sub(off, off) == '?' then
-    query, off = uri:match('([^#]*)()', off + 1)
-  end
-  -- parse fragment
-  if uri:sub(off, off) == '#' then
-    fragment = uri:sub(off + 1)
-    off = #uri
-  end
-  return path or '/', query, fragment
-end
-
 local expects = {}
 local requests = {}
 
@@ -72,8 +58,8 @@ expects.ab = {
   method = "GET",
   url = "/foo/t.html?qstring#frag",
   path = "/foo/t.html",
-  query_string = "qstring",
-  fragment = "frag",
+  query = "qstring",
+  hash = "frag",
   headers = {
     Host = "localhost:8000",
     ["User-Agent"] = "ApacheBench/2.3",
@@ -155,7 +141,9 @@ local function init_parser(reqs)
 
   function cb.onUrl(value)
     cur.url = value
-    cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(value)
+    local parsed = URL.parse(cur.url)
+    if not parsed then return nil end
+    cur.path, cur.query, cur.hash = parsed.pathname, parsed.query, parsed.hash
   end
 
   function cb.onBody(value)

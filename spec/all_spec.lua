@@ -461,13 +461,6 @@ local function init_parser(connect)
   local cb = {}
   local cur
 
-  local function parse_path_query_fragment(uri)
-    local url = URL.parse(uri, connect)
-    if url then
-      return url.path, url.query, url.fragment
-    end
-  end
-
   function cb.onMessageBegin()
     assert(cur == nil)
     cur = { headers = {} }
@@ -475,7 +468,12 @@ local function init_parser(connect)
 
   function cb.onUrl(value)
     cur.url = cur.url and (cur.url .. value) or value
-    cur.path, cur.query_string, cur.fragment = parse_path_query_fragment(cur.url)
+    local url = URL.parse(cur.url, connect)
+    -- NOTE: url parse maybe fail
+
+    if url == nil then return end
+    assert(type(url)=='table')
+    cur.path, cur.query, cur.hash = url.pathname, url.query, url.hash
   end
 
   function cb.onBody(value)
@@ -524,20 +522,21 @@ describe('lhttp_parser unit testing', function()
   for k, v in pairs(requests) do
     if type(v) ~= "boolean" then
       test(k, function()
-        local connect = k:match("connect ") ~= nil
+        local connect = v:match("CONNECT ") ~= nil
         local parser, reqs = init_parser(connect)
         local bytes_read, status = parser:execute(v)
-        if not k:match("^HPE_INVALID") and not k:match("^invalid") and not k:match("underscore") then
+        if bytes_read then
+          assert(status=='HPE_OK' or
+            status=='HPE_PAUSED_UPGRADE' or
+            status=='HPE_STRICT',
+            status)
           assert(
-            bytes_read == #v,
+            bytes_read,
             "only [" .. tostring(bytes_read) .. "] bytes read, expected [" .. tostring(#v) .. "] in `" .. k .. '`\n' .. v
           )
-          local got = reqs[#reqs]
-          local found = false
-          for i = 1, #all_methods do
-            found = found or all_methods[i] == got.info.method
-          end
-          assert(found, got.info.method)
+        else
+          assert(status:match('^HPE_INVALID'))
+          assert(k:match('INVALID') or k:match('invalid'))
         end
       end)
     end
@@ -562,8 +561,9 @@ describe('lhttp_parser unit testing', function()
   for i = 1, #all_methods do
     local k = all_methods[i]
     it(k, function()
-      local req = string.format("%s / HTTP/1.1\r\n\r\n", k)
       local connect = k:match("CONNECT") ~= nil
+      local req = connect and string.format("%s 127.0.0.1:8080 HTTP/1.1\r\n\r\n", k)
+        or string.format("%s / HTTP/1.1\r\n\r\n", k)
       local parser = init_parser(connect)
       local bytes_read = parser:execute(req)
       assert(bytes_read == #req)

@@ -30,7 +30,7 @@ describe('lhttp_parser basic unit testing', function()
     function cb.onHeaderField(field)
       if not cur.path then
         local url = lurl.parse(cur.url, parser:method() == 'CONNECT')
-        cur.path, cur.query, cur.fragment = url.path, url.query, url.fragment
+        cur.path, cur.query, cur.hash = url.pathname, url.query, url.hash
       end
       cur.field = cur.field and (cur.field .. field) or field
     end
@@ -367,7 +367,7 @@ Connection: close
 
   expects.ab = {
     path = "/foo/t.html",
-    fragment = "frag",
+    hash = "frag",
     url = "/foo/t.html?qstring#frag",
     headers = {
       Host = "localhost:8000",
@@ -429,7 +429,7 @@ Connection: close
         end
       end
       if expected.body then
-        assert.same(expected.body, got.body)
+        assert.are.same(expected.body, got.body)
       end
     end)
   end
