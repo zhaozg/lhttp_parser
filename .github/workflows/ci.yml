@@ -29,8 +29,7 @@ jobs:
 
     - name: Run unit tests (busted)
       run: |
-        busted || true
-      continue-on-error: true
+        luajit /usr/bin/busted
 
     - name: Run Bench
       run: |
