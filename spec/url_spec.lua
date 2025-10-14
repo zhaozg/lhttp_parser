@@ -4,26 +4,27 @@ describe('lhttp_url', function()
   it("lhttp_parser URL parsing basic", function()
     local url = URL.parse("https://user:pass@example.com:8080/path?query=value#hash")
     assert(url ~= nil, "Should parse URL successfully")
-    assert(url.schema == "https", "Protocol should be https")
-    assert(url.port == 8080, "Port should be 8080")
+    assert(url.protocol == "https", "Protocol should be https")
+    assert(url.port == '8080', "Port should be 8080 with string type")
   end)
 
   local tast_cases = {
     {
-      "http://hello.com:8080/some/path?with=1%23&args=value", false, {
-        schema = 'http',
-        host = 'hello.com',
-        port = 8080,
-        port_string = '8080',
-        path = '/some/path',
-        query = 'with=1%23&args=value'
+      "http://dev:123456@hello.com:8080/some/path?with=1%23&args=value#hash", false, {
+        protocol = 'http',
+        auth = "dev:123456",
+        hostname = 'hello.com',
+        port = '8080',
+        pathname = '/some/path',
+        query = 'with=1%23&args=value',
+        hash = "hash"
       }
     }, {
       "/foo/t.html?qstring#frag", false,
-      { path = '/foo/t.html', query = 'qstring', fragment = 'frag' }
+      { pathname = '/foo/t.html', query = 'qstring', hash = 'frag' }
     }, {
       "192.168.0.1:80", true,
-      { port = 80, port_string = "80", host = "192.168.0.1" }
+      { port = '80', hostname = "192.168.0.1" }
     }
   }
 
@@ -31,7 +32,7 @@ describe('lhttp_url', function()
     it("lhttp_parser url parse:#" .. tast_case[1], function()
       local url, is_connect, expect = tast_case[1], tast_case[2], tast_case[3]
       local result = URL.parse(url, is_connect)
-      assert.are.same(result, expect)
+      assert.are.same(expect, result)
     end)
   end
 

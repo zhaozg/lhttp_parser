@@ -354,9 +354,37 @@ uint8_t utf8_len(const char* str)
 #endif
 
 /***
- * Parse a URL into components
+ * Parse a URL into components.
+ * URL layout as below chart.
+ * <pre>
+ * ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+ * │                                              href                                              │
+ * ├──────────┬──┬─────────────────────┬────────────────────────┬───────────────────────────┬───────┤
+ * │ protocol │  │        auth         │          host          │           path            │ hash  │
+ * │          │  │                     ├─────────────────┬──────┼──────────┬────────────────┤       │
+ * │          │  │                     │    hostname     │ port │ pathname │     search     │       │
+ * │          │  │                     │                 │      │          ├─┬──────────────┤       │
+ * │          │  │                     │                 │      │          │ │    query     │       │
+ * "  https:   //    user   :   pass   @ sub.example.com : 8080   /p/a/t/h  ?  query=string   #hash "
+ * │          │  │          │          │    hostname     │ port │          │                │       │
+ * │          │  │          │          ├─────────────────┴──────┤          │                │       │
+ * │ protocol │  │ username │ password │          host          │          │                │       │
+ * ├──────────┴──┼──────────┴──────────┼────────────────────────┤          │                │       │
+ * │   origin    │                     │         origin         │ pathname │     search     │ hash  │
+ * ├─────────────┴─────────────────────┴────────────────────────┴──────────┴────────────────┴───────┤
+ * │                                              href                                              │
+ * └────────────────────────────────────────────────────────────────────────────────────────────────┘
+ *  (All spaces in the "" line should be ignored. They are purely for formatting.)
+ *  </pre>
+ *  We not store all fields in parsed Lua table, just below files if exists.
  *
- * Parses a URL string and returns a table with its components.
+ *   - protocol
+ *   - auth
+ *   - hostname
+ *   - port
+ *   - pathname
+ *   - query
+ *   - hash
  *
  * @function parse
  * @tparam string url URL to parse
@@ -365,8 +393,8 @@ uint8_t utf8_len(const char* str)
  * @treturn[2] nil If parsing failed
  * @usage
  * local lurl = require('lhttp_url')
- * local url = lurl.parse("******example.com:8080/path?query=value#hash")
- * -- Returns a table with all URL components
+ * local parsed = lurl.parse("******example.com:8080/path?query=value#hash")
+ * -- Returns a table with all parsed URL components
  */
 static int lhttp_parser_parse_url (lua_State *L) {
   size_t len;
@@ -377,31 +405,15 @@ static int lhttp_parser_parse_url (lua_State *L) {
   if (http_parser_parse_url(url, len, is_connect, &u)) {
     return 0;
   }
-  /*
-┌────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                              href                                              │
-├──────────┬──┬─────────────────────┬────────────────────────┬───────────────────────────┬───────┤
-│ protocol │  │        auth         │          host          │           path            │ hash  │
-│          │  │                     ├─────────────────┬──────┼──────────┬────────────────┤       │
-│          │  │                     │    hostname     │ port │ pathname │     search     │       │
-│          │  │                     │                 │      │          ├─┬──────────────┤       │
-│          │  │                     │                 │      │          │ │    query     │       │
-"  https:   //    user   :   pass   @ sub.example.com : 8080   /p/a/t/h  ?  query=string   #hash "
-│          │  │          │          │    hostname     │ port │          │                │       │
-│          │  │          │          ├─────────────────┴──────┤          │                │       │
-│ protocol │  │ username │ password │          host          │          │                │       │
-├──────────┴──┼──────────┴──────────┼────────────────────────┤          │                │       │
-│   origin    │                     │         origin         │ pathname │     search     │ hash  │
-├─────────────┴─────────────────────┴────────────────────────┴──────────┴────────────────┴───────┤
-│                                              href                                              │
-└────────────────────────────────────────────────────────────────────────────────────────────────┘
-(All spaces in the "" line should be ignored. They are purely for formatting.)
-  */
 
   lua_newtable(L);
   if (u.field_set & (1 << UF_SCHEMA)) {
     lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);
     lua_setfield(L, -2, "protocol");
+  }
+  if (u.field_set & (1 << UF_USERINFO)) {
+    lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
+    lua_setfield(L, -2, "auth");
   }
   if (u.field_set & (1 << UF_HOST)) {
     lua_pushlstring(L, url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
@@ -422,10 +434,6 @@ static int lhttp_parser_parse_url (lua_State *L) {
   if (u.field_set & (1 << UF_FRAGMENT)) {
     lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
     lua_setfield(L, -2, "hash");
-  }
-  if (u.field_set & (1 << UF_USERINFO)) {
-    lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
-    lua_setfield(L, -2, "auth");
   }
   return 1;
 }

@@ -35,10 +35,12 @@ endif
 
 SHARED_LIB_FLAGS=-shared -o
 
+.PHONY:  doc test
+
 all: lhttp_parser.so lhttp_url.so
 
 doc:
-	ldoc -f markdown lhttp_parser.c lhttp_url.c
+	ldoc -f markdown .
 
 http.o: llhttp/src/http.c
 	$(CC) -c $< -o $@ ${CFLAGS}
