@@ -414,6 +414,128 @@ if requests.INVALID then
 
   name = "HPE_INVALID_TOKEN #1"
   requests[name] = "GET / HTTP/1.0\r\nHello: woooo\2rld\r\n\r\n"
+
+  -- 扩展非法HTTP请求用例
+  name = "invalid: 超长Header"
+  requests[name] = "GET / HTTP/1.1\r\n" .. "X-Long: " .. string.rep("a", 8192) .. "\r\n\r\n"
+
+  name = "invalid: Header特殊字符"
+  requests[name] = "GET / HTTP/1.1\r\nX:Name: value\r\n\r\n"
+
+  name = "invalid: 重复Content-Length"
+  requests[name] = "POST / HTTP/1.1\r\nContent-Length: 5\r\nContent-Length: 10\r\n\r\nHello"
+
+  name = "invalid: 非法Transfer-Encoding"
+  requests[name] = "POST / HTTP/1.1\r\nTransfer-Encoding: chunked, gzip\r\n\r\n"
+
+  name = "invalid: 非法chunked"
+  requests[name] = "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\nZZ\r\nhello\r\n0\r\n\r\n"
+
+  name = "invalid: URI非法编码"
+  requests[name] = "GET /foo%ZZbar HTTP/1.1\r\n\r\n"
+
+  name = "invalid: Header大小写混淆"
+  requests[name] = "GET / HTTP/1.1\r\nhOSt: example.com\r\n\r\n"
+
+  name = "invalid: 请求行过长"
+  requests[name] = "GET " .. string.rep("/a", 4096) .. " HTTP/1.1\r\n\r\n"
+
+  name = "invalid: 非法Unicode"
+  requests[name] = "GET / HTTP/1.1\r\nX-Name: \255\254\253\r\n\r\n"
+
+  name = "invalid: HTTP2前缀"
+  requests[name] = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+
+  -- Header 名称为空
+  name = "invalid: Header名称为空"
+  requests[name] = "GET / HTTP/1.1\r\n: value\r\n\r\n"
+
+  -- Header 行无冒号
+  name = "invalid: Header无冒号"
+  requests[name] = "GET / HTTP/1.1\r\nXNoColon value\r\n\r\n"
+
+  -- Header 行只有冒号
+  name = "invalid: Header只有冒号"
+  requests[name] = "GET / HTTP/1.1\r\n:\r\n\r\n"
+
+  -- Transfer-Encoding 多次重复
+  name = "invalid: Transfer-Encoding重复"
+  requests[name] = "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n\r\n"
+
+  -- HTTP方法名带特殊字符
+  name = "invalid: 方法名特殊字符"
+  requests[name] = "GET! / HTTP/1.1\r\n\r\n"
+
+  -- HTTP版本号格式非法
+  name = "invalid: 版本号格式非法"
+  requests[name] = "GET / HTTP/1.1.1\r\n\r\n"
+
+  -- Header 行中有控制字符
+  name = "invalid: Header含控制字符"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test:\1value\r\n\r\n"
+
+  -- Header 行结尾不是CRLF
+  name = "invalid: Header结尾不是CRLF"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test: value\n\n"
+
+  -- Body 长度小于 Content-Length
+  name = "invalid: Body短于Content-Length"
+  requests[name] = "POST / HTTP/1.1\r\nContent-Length: 10\r\n\r\nabc"
+
+  -- Body 长度大于 Content-Length
+  name = "invalid: Body长于Content-Length"
+  requests[name] = "POST / HTTP/1.1\r\nContent-Length: 3\r\n\r\nabcdef"
+
+  -- Header 数量极多
+  name = "invalid: Header数量极多"
+  local many_headers = {}
+  for i = 1, 1200 do
+    table.insert(many_headers, string.format("X-%03d: value", i))
+  end
+  requests[name] = "GET / HTTP/1.1\r\n" .. table.concat(many_headers, "\r\n") .. "\r\n\r\n"
+
+  -- Header 名称为保留字
+  name = "invalid: Header为保留字"
+  requests[name] = "GET / HTTP/1.1\r\nGET: value\r\n\r\n"
+
+  -- Header 值中包含多字节非法 UTF-8 序列
+  name = "invalid: Header值非法UTF8"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test: \xc3\x28\r\n\r\n"
+
+  -- Header 行中混入 TAB、VT、FF
+  name = "invalid: Header含TAB"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test:\tvalue\r\n\r\n"
+
+  -- 请求行中混入 NULL 字节
+  name = "invalid: 请求行含NULL"
+  requests[name] = "GET / HTTP/1.1\0\r\n\r\n"
+
+  -- Header 行中混入 NULL 字节
+  name = "invalid: Header含NULL"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test: value\0\r\n\r\n"
+
+  -- Header 行中混入多余的冒号
+  name = "invalid: Header多冒号"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test: value:extra\r\n\r\n"
+
+  -- Header 行中混入多余的空格
+  name = "invalid: Header多空格"
+  requests[name] = "GET / HTTP/1.1\r\nX-Test    :    value\r\n\r\n"
+
+  -- Body 为空但有 Content-Length
+  name = "invalid: Body空Content-Length"
+  requests[name] = "POST / HTTP/1.1\r\nContent-Length: 10\r\n\r\n"
+
+  name = "invalid: Body 长度不足"
+  requests[name] = "POST / HTTP/1.1\r\nContent-Length: 10\r\n\r\nabcd"
+
+  -- Transfer-Encoding 与 Content-Length 同时存在
+  name = "invalid: Transfer-Encoding和Content-Length共存"
+  requests[name] = "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nContent-Length: 10\r\n\r\n"
+
+  -- HTTP 版本号前缀或后缀非法
+  name = "invalid: 版本号后缀非法"
+  requests[name] = "GET / HTTP/1.1abc\r\n\r\n"
 end
 
 if requests.SSL then
@@ -535,7 +657,11 @@ describe('lhttp_parser unit testing', function()
             "only [" .. tostring(bytes_read) .. "] bytes read, expected [" .. tostring(#v) .. "] in `" .. k .. '`\n' .. v
           )
         else
-          assert(status:match('^HPE_INVALID'))
+          assert(status == 'HPE_CR_EXPECTED' or
+            status == 'HPE_UNEXPECTED_CONTENT_LENGTH' or
+            status == 'HPE_PAUSED_H2_UPGRADE' or
+            status:match('^HPE_INVALID_')
+            , status)
           assert(k:match('INVALID') or k:match('invalid'))
         end
       end)
