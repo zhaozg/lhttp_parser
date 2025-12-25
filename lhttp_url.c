@@ -408,32 +408,39 @@ static int lhttp_parser_parse_url (lua_State *L) {
 
   lua_newtable(L);
   if (u.field_set & (1 << UF_SCHEMA)) {
+    lua_pushliteral(L, "protocol");
     lua_pushlstring(L, url + u.field_data[UF_SCHEMA].off, u.field_data[UF_SCHEMA].len);
-    lua_setfield(L, -2, "protocol");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_USERINFO)) {
+    lua_pushliteral(L, "auth");
     lua_pushlstring(L, url + u.field_data[UF_USERINFO].off, u.field_data[UF_USERINFO].len);
-    lua_setfield(L, -2, "auth");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_HOST)) {
+    lua_pushliteral(L, "hostname");
     lua_pushlstring(L, url + u.field_data[UF_HOST].off, u.field_data[UF_HOST].len);
-    lua_setfield(L, -2, "hostname");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_PORT)) {
+    lua_pushliteral(L, "port");
     lua_pushlstring(L, url + u.field_data[UF_PORT].off, u.field_data[UF_PORT].len);
-    lua_setfield(L, -2, "port");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_PATH)) {
+    lua_pushliteral(L, "pathname");
     lua_pushlstring(L, url + u.field_data[UF_PATH].off, u.field_data[UF_PATH].len);
-    lua_setfield(L, -2, "pathname");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_QUERY)) {
+    lua_pushliteral(L, "query");
     lua_pushlstring(L, url + u.field_data[UF_QUERY].off, u.field_data[UF_QUERY].len);
-    lua_setfield(L, -2, "query");
+    lua_rawset(L, -3);
   }
   if (u.field_set & (1 << UF_FRAGMENT)) {
+    lua_pushliteral(L, "hash");
     lua_pushlstring(L, url + u.field_data[UF_FRAGMENT].off, u.field_data[UF_FRAGMENT].len);
-    lua_setfield(L, -2, "hash");
+    lua_rawset(L, -3);
   }
   return 1;
 }
