@@ -156,7 +156,9 @@ static const int hexval[256] =
 static char* _decode_url(const char* input)
 {
   const size_t len = strlen(input);
-  char* decoded = malloc(sizeof(uint8_t) * len + 1);
+  // 使用 calloc 确保内存清零
+  char* decoded = calloc(len + 1, sizeof(char));
+  if (!decoded) return NULL;
 
   int in_cursor = 0;
   int out_cursor = 0;
