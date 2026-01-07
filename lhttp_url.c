@@ -401,7 +401,7 @@ static int lhttp_parser_parse_url (lua_State *L) {
   const char *url = luaL_checklstring(L, 1, &len);
   int is_connect = lua_toboolean(L, 2);
 
-  struct http_parser_url u;
+  struct http_parser_url u = { 0 };
   if (http_parser_parse_url(url, len, is_connect, &u)) {
     return 0;
   }

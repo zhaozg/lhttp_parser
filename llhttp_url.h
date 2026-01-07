@@ -46,9 +46,6 @@ struct http_parser_url {
   } field_data[UF_MAX];
 };
 
-/* Initialize all http_parser_url members to 0 */
-void http_parser_url_init(struct http_parser_url *u);
-
 /* Parse a URL; return nonzero on failure */
 int http_parser_parse_url(const char *buf, size_t buflen,
                           int is_connect, struct http_parser_url *u);
