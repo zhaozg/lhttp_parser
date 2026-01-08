@@ -93,7 +93,7 @@ describe('lhttp_url', function()
     --   print(URL.decode("hello%2G"), "hello%2G")  -- G不是十六进制
     --   print(URL.decode("%%20"),"%%20")  -- 双百分号
     -- end)
-  end)
+   end)
 
   -- 正向测试：合法的 URL
   describe("Positive tests - valid URLs", function()
@@ -191,13 +191,13 @@ describe('lhttp_url', function()
 
     it("should parse URL with empty query", function()
       local url = URL.parse("/test?")
-      assert(url.query==nil)
+      assert(url.query=="")
       assert(url.pathname=='/test')
     end)
 
     it("should parse URL with empty fragment", function()
       local url = URL.parse("/test#")
-      assert(url.hash == nil)
+      assert(url.hash=="")
       assert(url.pathname=='/test')
     end)
 
@@ -307,19 +307,16 @@ describe('lhttp_url', function()
       assert(url == nil, "Should reject URL with invalid percent encoding")
     end)
 
-    it("should parse // as path", function()
-      local url = URL.parse("//path")
-      assert(url.pathname == "//path")
+    it("should parse // as hostname", function()
+      local url = URL.parse("//host")
+      assert(url.hostname== "host")
     end)
 
     it("should parse //host as host when followed by /", function()
-      -- 实际上，//host/path 在规范中应该被解析为主机
-      -- 但你的解析器可能不支持，取决于实现
       local url = URL.parse("//example.com/path")
-      -- 根据你的解析器实现，可能有两种结果：
-      -- 1. 路径模式: pathname = "//example.com/path"
-      -- 2. 主机模式: hostname = "example.com", pathname = "/path"
       assert(url ~= nil)
+      assert(url.hostname == "example.com")
+      assert(url.pathname == "/path")
     end)
 
     it("should parse //host:port correctly", function()

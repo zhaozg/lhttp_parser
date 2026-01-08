@@ -1,5 +1,5 @@
 uname_S	 =$(shell uname -s)
-OBJS	 =lhttp_parser.o llhttp_url.o lhttp_url.o api.o llhttp.o http.o
+OBJS	 =lhttp_parser.o llurl.o lhttp_url.o api.o llhttp.o http.o
 
 ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
@@ -9,7 +9,7 @@ else
   LIBS=-lm -lpthread -lrt -lluajit-5.1
 endif
 
-CFLAGS	?= -g
+CFLAGS	?= -O3
 CFLAGS  +=-Ihttp-parser -Illhttp/include -I${LJDIR}/include/luajit-2.1 -Wall -Werror -fPIC
 
 TARGET  = $(MAKECMDGOALS)
@@ -28,7 +28,7 @@ ifeq (Linux, $(uname_S))
 endif
 CC            ?= clang
 LD            ?= clang
-CFLAGS	+=-g -O0 -fsanitize=address,undefined
+CFLAGS	+= -fsanitize=address,undefined
 endif
 # asan }}}
 
@@ -66,7 +66,11 @@ lhttp_parser.so: ${OBJS}
 lhttp_url.so: ${OBJS}
 	$(CC) ${CFLAGS} ${SHARED_LIB_FLAGS} $@ ${OBJS} ${LIBS}
 
-test: all
+url_parser: llurl.c t_url.c
+	$(CC) ${CFLAGS} -funroll-loops -o $@ llurl.c t_url.c
+
+test: all url_parser
+	./url_parser
 	busted
 	luajit bench.lua
 
@@ -85,4 +89,4 @@ ifeq (Linux, $(uname_S))
 endif
 
 clean:
-	rm -f *.so *.o
+	rm -rf *.so *.o url_parser *.dSYM

@@ -21,10 +21,9 @@ extern "C" {
 
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
 #include <stdint.h>
 #include <assert.h>
-#include "llhttp_url.h"
+#include "llurl.h"
 
 #define UTF8_LEAD(c) ((uint8_t)(c) < 0x80 || ((uint8_t)(c) > 0xC1 && (uint8_t)(c) < 0xF5))
 #define UTF8_TRAIL(c) (((uint8_t)(c) & 0xC0) == 0x80)
