@@ -36,13 +36,6 @@ describe('lhttp_url', function()
     end)
   end
 
-  it("lhttp_parser URL encoding and decoding", function()
-    local original = "hello world & special chars: @#$%"
-    local encoded = URL.encode(original)
-    local decoded = URL.decode(encoded)
-    assert(decoded == original, "Decoded should match original")
-  end)
-
   it("lhttp_parser URL parsing edge cases", function()
     -- Test with no path
     local url1 = URL.parse("http://example.com")
@@ -59,41 +52,6 @@ describe('lhttp_url', function()
     parsed = URL.parse('192.168.0.1:80', true)
     assert(parsed)
   end)
-
-  -- 测试 encode/decode 功能
-  describe("Encoding and decoding", function()
-    it("should encode basic string", function()
-      local original = "hello world & special chars: @#$%"
-      local encoded = URL.encode(original)
-      local decoded = URL.decode(encoded)
-      assert(decoded == original, "Decoded should match original")
-    end)
-
-    it("should handle empty string", function()
-      assert(URL.encode("") == "")
-      assert(URL.decode("") == "")
-    end)
-
-    it("should encode reserved characters", function()
-      local reserved = "!*'();:@&=+$,/?#[]"
-      local encoded = URL.encode(reserved)
-      -- 所有保留字符都应该被编码
-      assert(encoded:find("%%%x%x") ~= nil)
-    end)
-
-    it("should decode percent-encoded sequences", function()
-      assert(URL.decode("hello%20world") == "hello world")
-      assert(URL.decode("%40%23%24") == "@#$")
-      assert(URL.decode("%41") == "A")
-    end)
-
-    -- it("should handle invalid percent encoding", function()
-    --   -- 不完整的百分比编码
-    --   print(URL.decode("hello%2") ,"hello%2")
-    --   print(URL.decode("hello%2G"), "hello%2G")  -- G不是十六进制
-    --   print(URL.decode("%%20"),"%%20")  -- 双百分号
-    -- end)
-   end)
 
   -- 正向测试：合法的 URL
   describe("Positive tests - valid URLs", function()

@@ -1,5 +1,5 @@
 uname_S	 =$(shell uname -s)
-OBJS	 =lhttp_parser.o llurl.o lhttp_url.o api.o llhttp.o http.o
+OBJS	 =lhttp_parser.o llurl.o llquery.o lhttp_url.o api.o llhttp.o http.o
 
 ifeq (Darwin, $(uname_S))
   LJDIR ?= /usr/local/opt/luajit
