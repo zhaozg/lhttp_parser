@@ -184,16 +184,19 @@ static int decode_url(lua_State* L) {
 static int parse_query(lua_State* L) {
   size_t l;
   const char* input = luaL_checklstring(L, 1, &l);
+  uint16_t flags = luaL_optinteger(L, 2, LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_MERGE_DUPLICATES);
+
   char buffer[8192];
   char *buf;
+  struct llquery query;
+  enum llquery_error err;
 
   if (!input || !*input) {
     return 0;
   }
 
   // 初始化 llquery 解析器
-  struct llquery query;
-  enum llquery_error err = llquery_init(&query, 0, LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_TRIM_VALUES | LQF_LOWERCASE_KEYS);
+  err = llquery_init(&query, 0, flags);
 
   if (err != LQE_OK) {
     return 0;
