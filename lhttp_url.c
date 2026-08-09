@@ -184,7 +184,20 @@ static int decode_url(lua_State* L) {
 static int parse_query(lua_State* L) {
   size_t l;
   const char* input = luaL_checklstring(L, 1, &l);
-  uint16_t flags = luaL_optinteger(L, 2, LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_MERGE_DUPLICATES);
+
+  /* 默认启用 URL 解码、保留空值、合并重复键、键名转小写、去除值前后空白 */
+  uint16_t flags = LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_MERGE_DUPLICATES |
+                   LQF_LOWERCASE_KEYS | LQF_TRIM_VALUES;
+
+  if (lua_isboolean(L, 2)) {
+    /* 布尔参数：控制是否合并重复键为数组 */
+    if (!lua_toboolean(L, 2)) {
+      flags &= (uint16_t)~LQF_MERGE_DUPLICATES;
+    }
+  } else if (!lua_isnoneornil(L, 2)) {
+    /* 数字参数：完整控制解析标志位 */
+    flags = (uint16_t)luaL_checkinteger(L, 2);
+  }
 
   char buffer[8192];
   char *buf;
