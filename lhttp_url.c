@@ -87,6 +87,18 @@ static int encode_url(lua_State* L) {
 }
 
 
+
+/* 从 Lua 表中按 key 读取布尔字段，不存在时返回默认值 */
+static int opt_bool_field(lua_State* L, int table_idx, const char* key, int default_val) {
+  lua_getfield(L, table_idx, key);
+  int result = default_val;
+  if (!lua_isnil(L, -1)) {
+    result = lua_toboolean(L, -1);
+  }
+  lua_pop(L, 1);
+  return result;
+}
+
 static void query_to_lua_table(lua_State* L, struct llquery* query) {
   uint16_t count = llquery_count(query);
   lua_createtable(L, 0, count); // create result table
@@ -165,32 +177,54 @@ static int decode_url(lua_State* L) {
   free(decoded_str);
   return 1;
 }
-
 /***
  * Parse a query string into a table
  *
- * Always parses a query string into a Lua table, regardless of content.
- * Supports URL decoding and merging duplicate keys into arrays.
+ * Parses a URL query string into a Lua table. Supports URL decoding,
+ * merging duplicate keys into arrays, key case control, and value trimming.
  *
  * @function parse_query
  * @tparam string query Query string to parse
- * @tparam[opt] boolean merge_duplicates Whether to merge duplicate keys into arrays
+ * @tparam[opt] table options Options table with optional boolean fields:
+ *
+ *   - **decode** (default `true`): enable URL decoding (`%XX` → char, `+` → space)
+ *   - **merge_duplicates** (default `true`): merge duplicate keys into an array
+ *     (e.g. `k=1&k=2` → `{k={"1","2"}}`)
+ *   - **keep_empty** (default `true`): keep keys with empty values
+ *     (e.g. `foo=&bar` → `{foo="", bar=""}`)
+ *   - **lowercase_keys** (default `false`): convert all keys to lowercase
+ *   - **trim_values** (default `false`): strip leading/trailing whitespace from values
+ *   - **strict** (default `false`): return error on too many pairs instead of truncating
+ *
  * @treturn table Table of key-value pairs
  * @usage
  * local lurl = require('lhttp_url')
- * local params = lurl.parse_query("name=John&age=30&hobby=sports&hobby=music")
- * -- Returns: {name="John", age="30", hobby={"sports", "music"}}
+ *
+ * -- 基本用法，保留原始键名大小写
+ * local p = lurl.parse_query("Name=Tom&Age=30")
+ * -- Returns: {Name="Tom", Age="30"}
+ *
+ * -- 启用键名小写 + 去空白
+ * local p = lurl.parse_query("A= 1 &B=2 ", {lowercase_keys=true, trim_values=true})
+ * -- Returns: {a="1", b="2"}
  */
 static int parse_query(lua_State* L) {
   size_t l;
   const char* input = luaL_checklstring(L, 1, &l);
 
-  /* 默认启用 URL 解码、保留空值、合并重复键、键名转小写、去除值前后空白 */
-  uint16_t flags = LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_MERGE_DUPLICATES |
-                   LQF_LOWERCASE_KEYS | LQF_TRIM_VALUES;
+  /* 合理默认：启用解码、合并重复键、保留空值；保留键名大小写、不去空白 */
+  uint16_t flags = LQF_AUTO_DECODE | LQF_KEEP_EMPTY | LQF_MERGE_DUPLICATES;
 
-  if (lua_isboolean(L, 2)) {
-    /* 布尔参数：控制是否合并重复键为数组 */
+  if (lua_istable(L, 2)) {
+    /* options table — 按字段逐项读取 */
+    if (!opt_bool_field(L, 2, "decode",           1)) flags &= (uint16_t)~LQF_AUTO_DECODE;
+    if (!opt_bool_field(L, 2, "merge_duplicates", 1)) flags &= (uint16_t)~LQF_MERGE_DUPLICATES;
+    if (!opt_bool_field(L, 2, "keep_empty",       1)) flags &= (uint16_t)~LQF_KEEP_EMPTY;
+    if ( opt_bool_field(L, 2, "lowercase_keys",   0)) flags |= LQF_LOWERCASE_KEYS;
+    if ( opt_bool_field(L, 2, "trim_values",      0)) flags |= LQF_TRIM_VALUES;
+    if ( opt_bool_field(L, 2, "strict",           0)) flags |= LQF_STRICT;
+  } else if (lua_isboolean(L, 2)) {
+    /* 向后兼容：布尔参数控制是否合并重复键 */
     if (!lua_toboolean(L, 2)) {
       flags &= (uint16_t)~LQF_MERGE_DUPLICATES;
     }
